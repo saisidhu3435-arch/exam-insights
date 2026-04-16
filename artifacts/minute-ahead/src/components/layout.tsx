@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import logoImg from "@assets/5e08dcec-6c6d-4c5a-a3e2-3f47109160f2_1776317432015.png";
+import logoImg from "@assets/logo-transparent.png";
 import { Compass, Home, User } from "lucide-react";
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -9,7 +9,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col max-w-md mx-auto w-full bg-card border-x border-border shadow-2xl relative">
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-center">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <img src={logoImg} alt="Minute Ahead" className="h-16 w-auto object-contain mix-blend-multiply" />
+          <img src={logoImg} alt="Minute Ahead" className="h-12 w-auto object-contain" />
         </Link>
       </header>
 

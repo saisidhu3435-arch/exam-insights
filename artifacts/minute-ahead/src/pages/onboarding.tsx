@@ -1,31 +1,31 @@
 import { useLocation } from "wouter";
-import { Button } from "@/components/ui/button";
-import { useSavePreferences, useGetPreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
-import { useState, useEffect } from "react";
+import { useSavePreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
+import { useState } from "react";
 import { useSessionId } from "@/hooks/use-session";
 import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react/src/generated/api.schemas";
-import { Target, BookOpen, Globe, Clock, Zap, Coffee } from "lucide-react";
-import logoImg from "@assets/5e08dcec-6c6d-4c5a-a3e2-3f47109160f2_1776317432015.png";
+import { BookOpen, Globe, Clock, Zap, Coffee, ChevronRight } from "lucide-react";
+import logoImg from "@assets/logo-transparent.png";
 import { useQueryClient } from "@tanstack/react-query";
+
+const goals: { value: PreferencesInputGoal; icon: React.ReactNode; label: string; sub: string }[] = [
+  { value: "stay-updated", icon: <Zap className="w-5 h-5" />, label: "Stay Updated", sub: "Daily news, no fluff." },
+  { value: "exams", icon: <BookOpen className="w-5 h-5" />, label: "Exam Prep", sub: "CLAT, AILET & more." },
+  { value: "general-knowledge", icon: <Globe className="w-5 h-5" />, label: "Build Knowledge", sub: "Curious about everything." },
+];
+
+const timeModes: { value: PreferencesInputTimeMode; icon: React.ReactNode; label: string; sub: string }[] = [
+  { value: "2min", icon: <Zap className="w-5 h-5" />, label: "2 minutes", sub: "Core facts only." },
+  { value: "5min", icon: <Coffee className="w-5 h-5" />, label: "5 minutes", sub: "Balanced take." },
+  { value: "10min", icon: <Clock className="w-5 h-5" />, label: "10 minutes", sub: "Deep context." },
+];
 
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
   const sessionId = useSessionId();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
-
-  const { data: preferences } = useGetPreferences();
-
   const [goal, setGoal] = useState<PreferencesInputGoal | null>(null);
   const [timeMode, setTimeMode] = useState<PreferencesInputTimeMode | null>(null);
-
-  useEffect(() => {
-    if (preferences) {
-      if (preferences.goal) setGoal(preferences.goal);
-      if (preferences.timeMode) setTimeMode(preferences.timeMode);
-    }
-  }, [preferences]);
-
   const savePreferences = useSavePreferences();
 
   const handleComplete = () => {
@@ -44,130 +44,119 @@ export function OnboardingPage() {
   };
 
   return (
-    <div
-      className="min-h-[100dvh] flex flex-col p-6 max-w-md mx-auto w-full relative"
-      style={{
-        background:
-          "radial-gradient(circle at 20% 10%, hsla(0,80%,60%,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 80%, hsla(25,80%,70%,0.06) 0%, transparent 50%), hsl(30 20% 97%)",
-      }}
+    <div className="min-h-[100dvh] flex flex-col relative overflow-hidden"
+      style={{ background: "linear-gradient(160deg, #0f0f0f 0%, #1a0a0a 50%, #0f0f0f 100%)" }}
     >
-      <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-bottom-4 duration-500">
-        <div className="mb-10 flex justify-center">
-          <img src={logoImg} alt="Minute Ahead" className="h-28 w-auto mix-blend-multiply" />
+      {/* Decorative blobs */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full opacity-20 pointer-events-none"
+        style={{ background: "radial-gradient(circle, #cc0000 0%, transparent 70%)", filter: "blur(60px)" }}
+      />
+      <div className="absolute bottom-0 right-0 w-60 h-60 rounded-full opacity-10 pointer-events-none"
+        style={{ background: "radial-gradient(circle, #ff6600 0%, transparent 70%)", filter: "blur(60px)" }}
+      />
+
+      <div className="relative flex-1 flex flex-col max-w-md mx-auto w-full px-6 py-8">
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <img src={logoImg} alt="Minute Ahead" className="h-24 w-auto" />
         </div>
 
+        {/* Step indicator */}
+        <div className="flex items-center gap-2 mb-8 justify-center">
+          <div className={`h-1.5 rounded-full transition-all duration-500 ${step === 1 ? "w-10 bg-red-500" : "w-5 bg-white/20"}`} />
+          <div className={`h-1.5 rounded-full transition-all duration-500 ${step === 2 ? "w-10 bg-red-500" : "w-5 bg-white/20"}`} />
+        </div>
+
+        {/* Step 1: Goal */}
         {step === 1 && (
-          <div className="space-y-6">
-            <div className="space-y-2 text-center mb-8">
-              <h1 className="text-3xl font-extrabold tracking-tight">Why are you here?</h1>
-              <p className="text-muted-foreground font-medium text-sm">Help us personalize your daily brief.</p>
+          <div className="flex-1 flex flex-col animate-in slide-in-from-right-8 duration-400">
+            <div className="mb-8">
+              <p className="text-white/40 text-sm font-semibold uppercase tracking-widest mb-2">Step 1 of 2</p>
+              <h1 className="text-4xl font-extrabold text-white leading-tight">
+                Why are you<br />here?
+              </h1>
+              <p className="text-white/50 mt-2 text-sm">We'll show you only what actually matters to you.</p>
             </div>
 
             <div className="space-y-3">
-              <button
-                onClick={() => { setGoal("stay-updated"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "stay-updated" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <Target className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Stay Updated</h3>
-                  <p className="text-sm text-muted-foreground">General news without the noise.</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => { setGoal("exams"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "exams" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Exam Prep</h3>
-                  <p className="text-sm text-muted-foreground">Focused on CLAT, AILET, etc.</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => { setGoal("general-knowledge"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "general-knowledge" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <Globe className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">General Knowledge</h3>
-                  <p className="text-sm text-muted-foreground">Learn something new daily.</p>
-                </div>
-              </button>
+              {goals.map((g) => (
+                <button
+                  key={g.value}
+                  onClick={() => { setGoal(g.value); setStep(2); }}
+                  className={`w-full p-4 rounded-2xl text-left transition-all duration-200 flex items-center gap-4 group ${
+                    goal === g.value
+                      ? "bg-red-600 text-white shadow-lg shadow-red-900/40"
+                      : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  <div className={`p-2.5 rounded-xl transition-colors ${goal === g.value ? "bg-white/20" : "bg-white/10 group-hover:bg-white/15"}`}>
+                    {g.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">{g.label}</h3>
+                    <p className={`text-xs ${goal === g.value ? "text-white/70" : "text-white/40"}`}>{g.sub}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 opacity-40" />
+                </button>
+              ))}
             </div>
           </div>
         )}
 
+        {/* Step 2: Time */}
         {step === 2 && (
-          <div className="space-y-6">
-            <div className="space-y-2 text-center mb-8">
-              <h1 className="text-3xl font-extrabold tracking-tight">How much time do you have?</h1>
-              <p className="text-muted-foreground font-medium text-sm">We'll adjust the depth of explanations.</p>
+          <div className="flex-1 flex flex-col animate-in slide-in-from-right-8 duration-400">
+            <div className="mb-8">
+              <p className="text-white/40 text-sm font-semibold uppercase tracking-widest mb-2">Step 2 of 2</p>
+              <h1 className="text-4xl font-extrabold text-white leading-tight">
+                How much<br />time daily?
+              </h1>
+              <p className="text-white/50 mt-2 text-sm">We'll match the depth of every story to your schedule.</p>
             </div>
 
             <div className="space-y-3">
-              <button
-                onClick={() => setTimeMode("2min")}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "2min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">2 minutes</h3>
-                  <p className="text-sm text-muted-foreground">Just the core facts.</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setTimeMode("5min")}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "5min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <Coffee className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">5 minutes</h3>
-                  <p className="text-sm text-muted-foreground">Balanced understanding.</p>
-                </div>
-              </button>
-
-              <button
-                onClick={() => setTimeMode("10min")}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "10min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
-              >
-                <div className="bg-primary/10 text-primary p-3 rounded-full">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">10 minutes</h3>
-                  <p className="text-sm text-muted-foreground">Deep dive into contexts.</p>
-                </div>
-              </button>
+              {timeModes.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setTimeMode(t.value)}
+                  className={`w-full p-4 rounded-2xl text-left transition-all duration-200 flex items-center gap-4 group ${
+                    timeMode === t.value
+                      ? "bg-red-600 text-white shadow-lg shadow-red-900/40"
+                      : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                  }`}
+                >
+                  <div className={`p-2.5 rounded-xl transition-colors ${timeMode === t.value ? "bg-white/20" : "bg-white/10 group-hover:bg-white/15"}`}>
+                    {t.icon}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-bold text-base">{t.label}</h3>
+                    <p className={`text-xs ${timeMode === t.value ? "text-white/70" : "text-white/40"}`}>{t.sub}</p>
+                  </div>
+                </button>
+              ))}
             </div>
 
-            <div className="pt-8 flex gap-3">
-              <Button variant="outline" className="flex-1 rounded-full h-12" onClick={() => setStep(1)}>
-                Back
-              </Button>
-              <Button
-                className="flex-[2] rounded-full h-12 font-bold text-base"
-                disabled={!timeMode || savePreferences.isPending}
-                onClick={handleComplete}
+            <div className="mt-8 flex gap-3">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 py-3.5 rounded-full border border-white/20 text-white/70 font-semibold hover:bg-white/5 transition-colors"
               >
-                {savePreferences.isPending ? "Saving..." : "Start Reading"}
-              </Button>
+                Back
+              </button>
+              <button
+                onClick={handleComplete}
+                disabled={!timeMode || savePreferences.isPending}
+                className="flex-[2] py-3.5 rounded-full bg-red-600 text-white font-bold disabled:opacity-40 hover:bg-red-500 active:scale-95 transition-all shadow-lg shadow-red-900/40"
+              >
+                {savePreferences.isPending ? "Setting up..." : "Start Reading"}
+              </button>
             </div>
           </div>
         )}
+
+        <p className="text-center text-white/20 text-xs mt-8">
+          Minute Ahead — Made for students who think ahead.
+        </p>
       </div>
     </div>
   );
