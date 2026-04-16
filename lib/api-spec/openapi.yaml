@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for Minute Ahead news platform
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: news
+    description: News article operations
+  - name: users
+    description: User preference operations
+  - name: reactions
+    description: Reaction operations
 paths:
   /healthz:
     get:
@@ -24,6 +30,184 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List news articles
+      description: Returns all news articles, optionally filtered by category or time mode
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Filter by category
+        - name: timeMode
+          in: query
+          schema:
+            type: string
+            enum: [2min, 5min, 10min]
+          description: Filter articles by reading time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+          description: Max number of results
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsArticle"
+
+  /news/today:
+    get:
+      operationId: getTodaysUpdates
+      tags: [news]
+      summary: Get today's top updates
+      description: Returns 3-6 top updates for the day
+      parameters:
+        - name: timeMode
+          in: query
+          schema:
+            type: string
+            enum: [2min, 5min, 10min]
+          description: Filter by user's time preference
+        - name: goal
+          in: query
+          schema:
+            type: string
+            enum: [stay-updated, exams, general-knowledge]
+          description: Filter by user goal
+      responses:
+        "200":
+          description: Today's top updates
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsArticle"
+
+  /news/categories:
+    get:
+      operationId: listCategories
+      tags: [news]
+      summary: List all categories
+      description: Returns all available news categories with article counts
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /news/{id}:
+    get:
+      operationId: getNewsArticle
+      tags: [news]
+      summary: Get a single news article
+      description: Returns full detail of a news article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Article details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsArticle"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /reactions:
+    post:
+      operationId: createReaction
+      tags: [reactions]
+      summary: Add or update a reaction
+      description: Like or dislike an article (by session or user)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReactionInput"
+      responses:
+        "200":
+          description: Updated reaction counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionSummary"
+
+  /reactions/{articleId}:
+    get:
+      operationId: getReactions
+      tags: [reactions]
+      summary: Get reactions for an article
+      description: Returns like/dislike counts for an article
+      parameters:
+        - name: articleId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Reaction counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReactionSummary"
+
+  /preferences:
+    get:
+      operationId: getPreferences
+      tags: [users]
+      summary: Get user preferences
+      description: Returns stored user preferences from session
+      responses:
+        "200":
+          description: User preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+    post:
+      operationId: savePreferences
+      tags: [users]
+      summary: Save user preferences
+      description: Save onboarding preferences (goal + time mode)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreferencesInput"
+      responses:
+        "200":
+          description: Saved preferences
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserPreferences"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +218,138 @@ components:
       required:
         - status
 
+    NewsArticle:
+      type: object
+      properties:
+        id:
+          type: integer
+        headline:
+          type: string
+        summary:
+          type: string
+          description: Short 1-2 sentence summary shown on the card
+        fullExplanation:
+          type: string
+          description: Longer breakdown for the detail page (still concise)
+        category:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        readingTime:
+          type: string
+          enum: [2min, 5min, 10min]
+        publishedAt:
+          type: string
+          format: date-time
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+        isFeatured:
+          type: boolean
+        whyItMatters:
+          type: string
+          description: One sentence on why students should care
+        examRelevance:
+          type: string
+          description: Optional CLAT/AILET exam relevance note
+      required:
+        - id
+        - headline
+        - summary
+        - fullExplanation
+        - category
+        - readingTime
+        - publishedAt
+        - likes
+        - dislikes
+        - isFeatured
+
+    Category:
+      type: object
+      properties:
+        name:
+          type: string
+        count:
+          type: integer
+        icon:
+          type: string
+      required:
+        - name
+        - count
+
+    ReactionSummary:
+      type: object
+      properties:
+        articleId:
+          type: integer
+        likes:
+          type: integer
+        dislikes:
+          type: integer
+        userReaction:
+          type: string
+          enum: [like, dislike, none]
+      required:
+        - articleId
+        - likes
+        - dislikes
+        - userReaction
+
+    ReactionInput:
+      type: object
+      properties:
+        articleId:
+          type: integer
+        reaction:
+          type: string
+          enum: [like, dislike, none]
+        sessionId:
+          type: string
+      required:
+        - articleId
+        - reaction
+
+    UserPreferences:
+      type: object
+      properties:
+        goal:
+          type: string
+          enum: [stay-updated, exams, general-knowledge]
+        timeMode:
+          type: string
+          enum: [2min, 5min, 10min]
+        hasCompletedOnboarding:
+          type: boolean
+        sessionId:
+          type: string
+      required:
+        - hasCompletedOnboarding
+
+    PreferencesInput:
+      type: object
+      properties:
+        goal:
+          type: string
+          enum: [stay-updated, exams, general-knowledge]
+        timeMode:
+          type: string
+          enum: [2min, 5min, 10min]
+        sessionId:
+          type: string
+      required:
+        - goal
+        - timeMode
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
