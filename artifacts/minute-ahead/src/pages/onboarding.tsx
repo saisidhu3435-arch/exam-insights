@@ -1,19 +1,21 @@
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useSavePreferences, useGetPreferences } from "@workspace/api-client-react";
+import { useSavePreferences, useGetPreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
 import { useState, useEffect } from "react";
 import { useSessionId } from "@/hooks/use-session";
 import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react/src/generated/api.schemas";
 import { Target, BookOpen, Globe, Clock, Zap, Coffee } from "lucide-react";
 import logoImg from "@assets/5e08dcec-6c6d-4c5a-a3e2-3f47109160f2_1776317432015.png";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function OnboardingPage() {
   const [, setLocation] = useLocation();
   const sessionId = useSessionId();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(1);
-  
+
   const { data: preferences } = useGetPreferences();
-  
+
   const [goal, setGoal] = useState<PreferencesInputGoal | null>(null);
   const [timeMode, setTimeMode] = useState<PreferencesInputTimeMode | null>(null);
 
@@ -31,20 +33,27 @@ export function OnboardingPage() {
       savePreferences.mutate(
         { data: { goal, timeMode, sessionId } },
         {
-          onSuccess: () => {
+          onSuccess: (data) => {
+            queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+            queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
             setLocation("/");
-          }
+          },
         }
       );
     }
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col p-6 bg-background max-w-md mx-auto w-full relative">
+    <div
+      className="min-h-[100dvh] flex flex-col p-6 max-w-md mx-auto w-full relative"
+      style={{
+        background:
+          "radial-gradient(circle at 20% 10%, hsla(0,80%,60%,0.08) 0%, transparent 50%), radial-gradient(circle at 80% 80%, hsla(25,80%,70%,0.06) 0%, transparent 50%), hsl(30 20% 97%)",
+      }}
+    >
       <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-bottom-4 duration-500">
-        
-        <div className="mb-8 flex justify-center">
-          <img src={logoImg} alt="Minute Ahead" className="h-10 w-auto" />
+        <div className="mb-10 flex justify-center">
+          <img src={logoImg} alt="Minute Ahead" className="h-16 w-auto" />
         </div>
 
         {step === 1 && (
@@ -57,7 +66,7 @@ export function OnboardingPage() {
             <div className="space-y-3">
               <button
                 onClick={() => { setGoal("stay-updated"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${goal === "stay-updated" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "stay-updated" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <Target className="w-6 h-6" />
@@ -70,7 +79,7 @@ export function OnboardingPage() {
 
               <button
                 onClick={() => { setGoal("exams"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${goal === "exams" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "exams" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <BookOpen className="w-6 h-6" />
@@ -83,7 +92,7 @@ export function OnboardingPage() {
 
               <button
                 onClick={() => { setGoal("general-knowledge"); setStep(2); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${goal === "general-knowledge" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${goal === "general-knowledge" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <Globe className="w-6 h-6" />
@@ -106,8 +115,8 @@ export function OnboardingPage() {
 
             <div className="space-y-3">
               <button
-                onClick={() => { setTimeMode("2min"); setTimeMode("2min"); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${timeMode === "2min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                onClick={() => setTimeMode("2min")}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "2min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <Zap className="w-6 h-6" />
@@ -119,8 +128,8 @@ export function OnboardingPage() {
               </button>
 
               <button
-                onClick={() => { setTimeMode("5min"); setTimeMode("5min"); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${timeMode === "5min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                onClick={() => setTimeMode("5min")}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "5min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <Coffee className="w-6 h-6" />
@@ -132,8 +141,8 @@ export function OnboardingPage() {
               </button>
 
               <button
-                onClick={() => { setTimeMode("10min"); setTimeMode("10min"); }}
-                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 ${timeMode === "10min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
+                onClick={() => setTimeMode("10min")}
+                className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-center gap-4 bg-card shadow-sm ${timeMode === "10min" ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"}`}
               >
                 <div className="bg-primary/10 text-primary p-3 rounded-full">
                   <Clock className="w-6 h-6" />
@@ -149,8 +158,8 @@ export function OnboardingPage() {
               <Button variant="outline" className="flex-1 rounded-full h-12" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button 
-                className="flex-[2] rounded-full h-12 font-bold text-base" 
+              <Button
+                className="flex-[2] rounded-full h-12 font-bold text-base"
                 disabled={!timeMode || savePreferences.isPending}
                 onClick={handleComplete}
               >

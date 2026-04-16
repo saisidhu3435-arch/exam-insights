@@ -52,41 +52,49 @@
 }
 
 :root {
-  --background: 0 0% 100%;
+  --background: 30 20% 97%;
   --foreground: 0 0% 7%;
-  
+
   --card: 0 0% 100%;
   --card-foreground: 0 0% 7%;
-  --card-border: 0 0% 92%;
+  --card-border: 0 0% 90%;
 
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 7%;
-  --popover-border: 0 0% 92%;
+  --popover-border: 0 0% 90%;
 
   --primary: 0 100% 40%;
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 0 0% 96%;
+  --secondary: 30 15% 94%;
   --secondary-foreground: 0 0% 7%;
 
-  --muted: 0 0% 96%;
+  --muted: 30 15% 94%;
   --muted-foreground: 0 0% 45%;
 
-  --accent: 0 0% 96%;
+  --accent: 30 15% 94%;
   --accent-foreground: 0 0% 7%;
 
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
 
-  --border: 0 0% 92%;
-  --input: 0 0% 92%;
+  --border: 30 10% 88%;
+  --input: 30 10% 88%;
   --ring: 0 100% 40%;
 
   --app-font-sans: "Plus Jakarta Sans", sans-serif;
   --app-font-serif: Georgia, serif;
   --app-font-mono: Menlo, monospace;
-  
+
   --radius: 0.75rem;
+
+  /* Auto borders */
+  --opaque-button-border-intensity: -8;
+  --primary-border: hsl(var(--primary));
+  --secondary-border: hsl(var(--secondary));
+  --muted-border: hsl(var(--muted));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
 }
 
 .dark {
@@ -119,13 +127,29 @@
   --border: 0 0% 15%;
   --input: 0 0% 15%;
   --ring: 0 100% 45%;
+
+  --opaque-button-border-intensity: 9;
+  --primary-border: hsl(var(--primary));
+  --secondary-border: hsl(var(--secondary));
+  --muted-border: hsl(var(--muted));
+  --accent-border: hsl(var(--accent));
+  --destructive-border: hsl(var(--destructive));
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+  html, body, #root {
+    min-height: 100dvh;
+  }
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased text-foreground;
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(circle at 20% 10%, hsla(0, 80%, 60%, 0.06) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, hsla(25, 80%, 70%, 0.05) 0%, transparent 50%),
+      radial-gradient(circle, rgba(0,0,0,0.035) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 22px 22px;
   }
 }
