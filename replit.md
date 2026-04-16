@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo using TypeScript. "Minute Ahead" — a student news platform for CLAT/AILET/UPSC prep.
 
 ## Stack
 
@@ -16,6 +16,9 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
 - **Frontend**: React + Vite (Tailwind CSS, Wouter routing, Framer Motion, TanStack Query)
+- **Auth**: Clerk (via `@clerk/express` server + `@clerk/react` client)
+- **AI**: Anthropic claude-haiku-4-5 via Replit AI Integrations (no API key needed)
+- **News source**: Google News India RSS → AI-enriched → stored in DB; auto-refreshes daily
 
 ## Applications
 
