@@ -1,0 +1,352 @@
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { useUser } from "@clerk/react";
+import { useSessionId } from "@/hooks/use-session";
+import { useSavePreferences, useGetPreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react";
+
+const TOPICS = [
+  { label: "Politics & Governance", value: "Politics", icon: "🏛️" },
+  { label: "Economy & Finance", value: "Economy", icon: "📈" },
+  { label: "Law & Justice", value: "Law", icon: "⚖️" },
+  { label: "Science & Tech", value: "Science & Technology", icon: "🔬" },
+  { label: "Environment", value: "Environment", icon: "🌿" },
+  { label: "International", value: "International Relations", icon: "🌐" },
+  { label: "National Security", value: "National Security", icon: "🛡️" },
+  { label: "Social Issues", value: "Social", icon: "🤝" },
+];
+
+const TIME_OPTIONS = [
+  {
+    value: "2min" as PreferencesInputTimeMode,
+    label: "2 minutes",
+    desc: "Just the headlines — the bare minimum to stay informed.",
+    articles: "3 articles",
+    icon: "⚡",
+  },
+  {
+    value: "5min" as PreferencesInputTimeMode,
+    label: "5 minutes",
+    desc: "A solid daily dose. Enough to know what's happening and why.",
+    articles: "5 articles",
+    icon: "📖",
+  },
+  {
+    value: "10min" as PreferencesInputTimeMode,
+    label: "10 minutes",
+    desc: "Go deep. Great for exam prep and building real GK.",
+    articles: "6+ articles",
+    icon: "🎯",
+  },
+];
+
+const GOAL_OPTIONS = [
+  {
+    value: "stay-updated" as PreferencesInputGoal,
+    label: "Stay Updated",
+    desc: "Keep up with current events in plain English. No fluff.",
+    icon: "📰",
+    color: "from-blue-500 to-indigo-600",
+  },
+  {
+    value: "exams" as PreferencesInputGoal,
+    label: "Exam Prep",
+    desc: "CLAT / AILET focused. Q&A format, key facts, exam angles.",
+    icon: "📚",
+    color: "from-red-500 to-rose-600",
+  },
+  {
+    value: "general-knowledge" as PreferencesInputGoal,
+    label: "Build Knowledge",
+    desc: "Story-style deep dives with an AI tutor you can chat with.",
+    icon: "🧠",
+    color: "from-violet-500 to-purple-600",
+  },
+];
+
+type Step = "time" | "goal" | "topic";
+
+export function WelcomePage() {
+  const { user, isLoaded } = useUser();
+  const [, setLocation] = useLocation();
+  const sessionId = useSessionId();
+  const queryClient = useQueryClient();
+  const { data: preferences, isLoading: prefsLoading } = useGetPreferences();
+  const savePreferences = useSavePreferences();
+
+  const [step, setStep] = useState<Step>("time");
+  const [timeMode, setTimeMode] = useState<PreferencesInputTimeMode | null>(null);
+  const [goal, setGoal] = useState<PreferencesInputGoal | null>(null);
+
+  const firstName = user?.firstName ?? "there";
+
+  // If already completed onboarding, skip to home
+  useEffect(() => {
+    if (!prefsLoading && preferences?.hasCompletedOnboarding) {
+      setLocation("/");
+    }
+  }, [prefsLoading, preferences, setLocation]);
+
+  const stepIndex = step === "time" ? 0 : step === "goal" ? 1 : 2;
+
+  function handleFinish(topic: string) {
+    if (!timeMode || !goal || !sessionId) return;
+    savePreferences.mutate(
+      {
+        data: {
+          goal,
+          timeMode,
+          favTopic: topic,
+          sessionId,
+        },
+      },
+      {
+        onSuccess: (data) => {
+          queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+          queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
+          localStorage.setItem("ma_goal", goal);
+          localStorage.setItem("ma_time_mode", timeMode);
+          localStorage.setItem("ma_fav_topic", topic);
+          setLocation("/");
+        },
+      }
+    );
+  }
+
+  if (!isLoaded || prefsLoading) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-[100dvh] bg-white flex flex-col">
+      {/* Progress bar */}
+      <div className="h-1 bg-gray-100">
+        <motion.div
+          className="h-full bg-primary"
+          animate={{ width: `${((stepIndex + 1) / 3) * 100}%` }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+        <AnimatePresence mode="wait">
+          {step === "time" && (
+            <StepTime
+              key="time"
+              firstName={firstName}
+              selected={timeMode}
+              onSelect={(v) => {
+                setTimeMode(v);
+                setTimeout(() => setStep("goal"), 280);
+              }}
+            />
+          )}
+          {step === "goal" && (
+            <StepGoal
+              key="goal"
+              selected={goal}
+              onSelect={(v) => {
+                setGoal(v);
+                setTimeout(() => setStep("topic"), 280);
+              }}
+              onBack={() => setStep("time")}
+            />
+          )}
+          {step === "topic" && (
+            <StepTopic
+              key="topic"
+              saving={savePreferences.isPending}
+              onSelect={(v) => handleFinish(v)}
+              onBack={() => setStep("goal")}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Step dots */}
+      <div className="flex justify-center gap-2 pb-8">
+        {(["time", "goal", "topic"] as Step[]).map((s, i) => (
+          <div
+            key={s}
+            className={`h-2 rounded-full transition-all duration-300 ${
+              i === stepIndex ? "w-6 bg-primary" : i < stepIndex ? "w-2 bg-primary/40" : "w-2 bg-gray-200"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StepTime({
+  firstName,
+  selected,
+  onSelect,
+}: {
+  firstName: string;
+  selected: PreferencesInputTimeMode | null;
+  onSelect: (v: PreferencesInputTimeMode) => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
+      transition={{ duration: 0.35 }}
+      className="w-full max-w-md space-y-8"
+    >
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 1 of 3</p>
+        <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
+          Hey {firstName} 👋<br />Welcome to Minute Ahead.
+        </h1>
+        <p className="text-gray-500 text-lg">How much time can you give to the news each day?</p>
+      </div>
+
+      <div className="space-y-3">
+        {TIME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onSelect(opt.value)}
+            className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+              selected === opt.value
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">{opt.icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-gray-900">{opt.label}</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{opt.articles}</span>
+                </div>
+                <p className="text-sm text-gray-500 mt-0.5">{opt.desc}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function StepGoal({
+  selected,
+  onSelect,
+  onBack,
+}: {
+  selected: PreferencesInputGoal | null;
+  onSelect: (v: PreferencesInputGoal) => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
+      transition={{ duration: 0.35 }}
+      className="w-full max-w-md space-y-8"
+    >
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 2 of 3</p>
+        <h1 className="text-3xl font-extrabold text-gray-900">Why are you here?</h1>
+        <p className="text-gray-500 text-lg">This shapes how every article is presented to you.</p>
+      </div>
+
+      <div className="space-y-3">
+        {GOAL_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onSelect(opt.value)}
+            className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+              selected === opt.value
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${opt.color} flex items-center justify-center text-lg shrink-0`}>
+                {opt.icon}
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">{opt.label}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{opt.desc}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <button onClick={onBack} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+        ← Back
+      </button>
+    </motion.div>
+  );
+}
+
+function StepTopic({
+  saving,
+  onSelect,
+  onBack,
+}: {
+  saving: boolean;
+  onSelect: (v: string) => void;
+  onBack: () => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
+      transition={{ duration: 0.35 }}
+      className="w-full max-w-md space-y-8"
+    >
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 3 of 3</p>
+        <h1 className="text-3xl font-extrabold text-gray-900">What's your favourite topic?</h1>
+        <p className="text-gray-500 text-lg">We'll show these stories first every day.</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {TOPICS.map((topic) => (
+          <button
+            key={topic.value}
+            onClick={() => {
+              setSelected(topic.value);
+              onSelect(topic.value);
+            }}
+            disabled={saving}
+            className={`rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+              selected === topic.value
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
+            } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+          >
+            <div className="text-2xl mb-1">{topic.icon}</div>
+            <p className="font-semibold text-sm text-gray-900 leading-tight">{topic.label}</p>
+          </button>
+        ))}
+      </div>
+
+      {saving && (
+        <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          Setting up your feed…
+        </div>
+      )}
+
+      <button onClick={onBack} disabled={saving} className="text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40">
+        ← Back
+      </button>
+    </motion.div>
+  );
+}

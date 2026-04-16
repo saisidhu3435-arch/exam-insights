@@ -2,7 +2,7 @@ import { useLocation } from "wouter";
 import { useSavePreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
 import { useState } from "react";
 import { useSessionId } from "@/hooks/use-session";
-import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react";
 import { BookOpen, Globe, Clock, Zap, Coffee, ChevronRight } from "lucide-react";
 import logoImg from "@assets/logo-transparent.png";
 import { useQueryClient } from "@tanstack/react-query";

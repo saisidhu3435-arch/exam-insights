@@ -35,6 +35,7 @@ export const userPreferencesTable = pgTable("user_preferences", {
   sessionId: text("session_id").notNull().unique(),
   goal: goalEnum("goal"),
   timeMode: readingTimeEnum("time_mode"),
+  favTopic: text("fav_topic"),
   hasCompletedOnboarding: boolean("has_completed_onboarding").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

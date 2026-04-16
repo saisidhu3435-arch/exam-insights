@@ -96,6 +96,8 @@ export const UserPreferencesTimeMode = {
 export interface UserPreferences {
   goal?: UserPreferencesGoal;
   timeMode?: UserPreferencesTimeMode;
+  /** User's favourite news topic category */
+  favTopic?: string;
   hasCompletedOnboarding: boolean;
   sessionId?: string;
 }
@@ -121,6 +123,8 @@ export const PreferencesInputTimeMode = {
 export interface PreferencesInput {
   goal: PreferencesInputGoal;
   timeMode: PreferencesInputTimeMode;
+  /** User's favourite news topic category */
+  favTopic?: string;
   sessionId?: string;
 }
 
@@ -162,6 +166,10 @@ export type GetTodaysUpdatesParams = {
    * Filter by user goal
    */
   goal?: GetTodaysUpdatesGoal;
+  /**
+   * Boost articles from this topic category to the top
+   */
+  favTopic?: string;
 };
 
 export type GetTodaysUpdatesTimeMode =

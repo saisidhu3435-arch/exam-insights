@@ -73,6 +73,10 @@ export const GetTodaysUpdatesQueryParams = zod.object({
     .enum(["stay-updated", "exams", "general-knowledge"])
     .optional()
     .describe("Filter by user goal"),
+  favTopic: zod.coerce
+    .string()
+    .optional()
+    .describe("Boost articles from this topic category to the top"),
 });
 
 export const GetTodaysUpdatesResponseItem = zod.object({
@@ -186,6 +190,10 @@ export const GetReactionsResponse = zod.object({
 export const GetPreferencesResponse = zod.object({
   goal: zod.enum(["stay-updated", "exams", "general-knowledge"]).optional(),
   timeMode: zod.enum(["2min", "5min", "10min"]).optional(),
+  favTopic: zod
+    .string()
+    .optional()
+    .describe("User's favourite news topic category"),
   hasCompletedOnboarding: zod.boolean(),
   sessionId: zod.string().optional(),
 });
@@ -197,12 +205,20 @@ export const GetPreferencesResponse = zod.object({
 export const SavePreferencesBody = zod.object({
   goal: zod.enum(["stay-updated", "exams", "general-knowledge"]),
   timeMode: zod.enum(["2min", "5min", "10min"]),
+  favTopic: zod
+    .string()
+    .optional()
+    .describe("User's favourite news topic category"),
   sessionId: zod.string().optional(),
 });
 
 export const SavePreferencesResponse = zod.object({
   goal: zod.enum(["stay-updated", "exams", "general-knowledge"]).optional(),
   timeMode: zod.enum(["2min", "5min", "10min"]).optional(),
+  favTopic: zod
+    .string()
+    .optional()
+    .describe("User's favourite news topic category"),
   hasCompletedOnboarding: zod.boolean(),
   sessionId: zod.string().optional(),
 });

@@ -10,6 +10,7 @@ import { HomePage } from "@/pages/home";
 import { ArticlePage } from "@/pages/article";
 import { BrowsePage } from "@/pages/browse";
 import { ProfilePage } from "@/pages/profile";
+import { WelcomePage } from "@/pages/welcome";
 import NotFound from "@/pages/not-found";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -25,14 +26,13 @@ function stripBase(path: string): string {
 }
 
 function SignInPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-4">
       <SignIn
         routing="path"
         path={`${basePath}/sign-in`}
         signUpUrl={`${basePath}/sign-up`}
+        forceRedirectUrl={`${basePath}/welcome`}
         appearance={{
           elements: {
             card: "shadow-xl border border-border",
@@ -45,14 +45,13 @@ function SignInPage() {
 }
 
 function SignUpPage() {
-  // To update login providers, app branding, or OAuth settings use the Auth
-  // pane in the workspace toolbar. More information can be found in the Replit docs.
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-4">
       <SignUp
         routing="path"
         path={`${basePath}/sign-up`}
         signInUrl={`${basePath}/sign-in`}
+        forceRedirectUrl={`${basePath}/welcome`}
         appearance={{
           elements: {
             card: "shadow-xl border border-border",
@@ -105,6 +104,7 @@ function ClerkProviderWithRoutes() {
           <Switch>
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
+            <Route path="/welcome" component={WelcomePage} />
             <Route path="/">
               <Layout>
                 <HomePage />

@@ -84,6 +84,11 @@ paths:
             type: string
             enum: [stay-updated, exams, general-knowledge]
           description: Filter by user goal
+        - name: favTopic
+          in: query
+          schema:
+            type: string
+          description: Boost articles from this topic category to the top
       responses:
         "200":
           description: Today's top updates
@@ -321,6 +326,9 @@ components:
         timeMode:
           type: string
           enum: [2min, 5min, 10min]
+        favTopic:
+          type: string
+          description: User's favourite news topic category
         hasCompletedOnboarding:
           type: boolean
         sessionId:
@@ -337,6 +345,9 @@ components:
         timeMode:
           type: string
           enum: [2min, 5min, 10min]
+        favTopic:
+          type: string
+          description: User's favourite news topic category
         sessionId:
           type: string
       required:

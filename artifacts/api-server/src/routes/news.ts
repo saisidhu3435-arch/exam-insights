@@ -40,18 +40,31 @@ router.get("/news/today", async (req, res) => {
   try {
     const parsed = GetTodaysUpdatesQueryParams.safeParse(req.query);
     const params = parsed.success ? parsed.data : {};
+    const favTopic = (req.query.favTopic as string) ?? null;
 
+    const limit = params.goal === "exams" ? 6 : params.timeMode === "2min" ? 3 : 5;
+
+    // Fetch more than needed so we can reorder by favTopic
     let query = db.select().from(newsArticlesTable).$dynamic();
 
     if (params.timeMode) {
       query = query.where(eq(newsArticlesTable.readingTime, params.timeMode as "2min" | "5min" | "10min"));
     }
 
-    const articles = await query
+    const allArticles = await query
       .orderBy(desc(newsArticlesTable.isFeatured), desc(newsArticlesTable.publishedAt))
-      .limit(params.goal === "exams" ? 6 : params.timeMode === "2min" ? 3 : 5);
+      .limit(limit * 3);
 
-    res.json(articles);
+    // Boost favTopic articles to the top
+    let articles = allArticles;
+    if (favTopic) {
+      const favNorm = favTopic.toLowerCase();
+      const topicMatches = allArticles.filter((a) => a.category.toLowerCase().includes(favNorm));
+      const rest = allArticles.filter((a) => !a.category.toLowerCase().includes(favNorm));
+      articles = [...topicMatches, ...rest];
+    }
+
+    res.json(articles.slice(0, limit));
   } catch (err) {
     req.log.error({ err }, "Error fetching today's updates");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch today's updates" });
@@ -194,6 +207,7 @@ router.get("/preferences", async (req, res) => {
     res.json({
       goal: prefs.goal,
       timeMode: prefs.timeMode,
+      favTopic: prefs.favTopic,
       hasCompletedOnboarding: prefs.hasCompletedOnboarding,
       sessionId: prefs.sessionId,
     });
@@ -211,6 +225,7 @@ router.post("/preferences", async (req, res) => {
     }
 
     const { goal, timeMode, sessionId } = parsed.data;
+    const favTopic = (parsed.data as { favTopic?: string }).favTopic ?? null;
     const sid = sessionId ?? "anonymous";
 
     const existing = await db.select().from(userPreferencesTable).where(eq(userPreferencesTable.sessionId, sid)).limit(1);
@@ -218,13 +233,25 @@ router.post("/preferences", async (req, res) => {
     if (existing.length > 0) {
       await db
         .update(userPreferencesTable)
-        .set({ goal: goal as "stay-updated" | "exams" | "general-knowledge", timeMode: timeMode as "2min" | "5min" | "10min", hasCompletedOnboarding: true, updatedAt: new Date() })
+        .set({
+          goal: goal as "stay-updated" | "exams" | "general-knowledge",
+          timeMode: timeMode as "2min" | "5min" | "10min",
+          favTopic,
+          hasCompletedOnboarding: true,
+          updatedAt: new Date(),
+        })
         .where(eq(userPreferencesTable.sessionId, sid));
     } else {
-      await db.insert(userPreferencesTable).values({ sessionId: sid, goal: goal as "stay-updated" | "exams" | "general-knowledge", timeMode: timeMode as "2min" | "5min" | "10min", hasCompletedOnboarding: true });
+      await db.insert(userPreferencesTable).values({
+        sessionId: sid,
+        goal: goal as "stay-updated" | "exams" | "general-knowledge",
+        timeMode: timeMode as "2min" | "5min" | "10min",
+        favTopic,
+        hasCompletedOnboarding: true,
+      });
     }
 
-    res.json({ goal, timeMode, hasCompletedOnboarding: true, sessionId: sid });
+    res.json({ goal, timeMode, favTopic, hasCompletedOnboarding: true, sessionId: sid });
   } catch (err) {
     req.log.error({ err }, "Error saving preferences");
     res.status(500).json({ error: "internal_error", message: "Failed to save preferences" });

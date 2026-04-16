@@ -11,5 +11,7 @@ import type { PreferencesInputTimeMode } from "./preferencesInputTimeMode";
 export interface PreferencesInput {
   goal: PreferencesInputGoal;
   timeMode: PreferencesInputTimeMode;
+  /** User's favourite news topic category */
+  favTopic?: string;
   sessionId?: string;
 }

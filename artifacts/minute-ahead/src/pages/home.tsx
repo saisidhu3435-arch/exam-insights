@@ -6,7 +6,7 @@ import { useStreak } from "@/hooks/use-streak";
 import { useSessionId } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { BookOpen, Zap, Sparkles, Settings2 } from "lucide-react";
-import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react";
 
 const goalConfig = {
   "stay-updated": {
@@ -72,6 +72,10 @@ export function HomePage() {
   const { data: preferences, isLoading: prefsLoading } = useGetPreferences();
   const savePreferences = useSavePreferences();
 
+  // Read localStorage fallbacks for anonymous users
+  const localGoal = typeof window !== "undefined" ? (localStorage.getItem("ma_goal") as PreferencesInputGoal | null) : null;
+  const localTimeMode = typeof window !== "undefined" ? (localStorage.getItem("ma_time_mode") as PreferencesInputTimeMode | null) : null;
+
   // Mouse-following glow
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!glowRef.current || !containerRef.current) return;
@@ -88,29 +92,19 @@ export function HomePage() {
     return () => el.removeEventListener("mousemove", handleMouseMove);
   }, [handleMouseMove]);
 
-  // Auto-save default prefs if none exist
-  useEffect(() => {
-    if (!prefsLoading && preferences && !preferences.hasCompletedOnboarding && sessionId) {
-      savePreferences.mutate(
-        { data: { goal: "stay-updated", timeMode: "5min", sessionId } },
-        {
-          onSuccess: (data) => {
-            queryClient.setQueryData(getGetPreferencesQueryKey(), data);
-            queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
-          },
-        }
-      );
-    }
-  }, [prefsLoading, preferences, sessionId]);
+  // Effective preferences: DB record (from welcome flow) or localStorage defaults
+  const effectiveGoal = (preferences?.goal ?? localGoal ?? "stay-updated") as PreferencesInputGoal;
+  const effectiveTimeMode = (preferences?.timeMode ?? localTimeMode ?? "5min") as PreferencesInputTimeMode;
+  const favTopic = ((preferences as { favTopic?: string } | undefined)?.favTopic ?? localStorage.getItem("ma_fav_topic")) ?? undefined;
 
-  const goal = (preferences?.goal as keyof typeof goalConfig) ?? "stay-updated";
+  const goal = (effectiveGoal as keyof typeof goalConfig) ?? "stay-updated";
   const config = goalConfig[goal] ?? goalConfig["stay-updated"];
 
   const { data: updates, isLoading: updatesLoading } = useGetTodaysUpdates(
-    { goal: preferences?.goal, timeMode: preferences?.timeMode },
+    { goal: effectiveGoal, timeMode: effectiveTimeMode, favTopic },
     {
       query: {
-        queryKey: ["todays-updates", preferences?.goal, preferences?.timeMode],
+        queryKey: ["todays-updates", effectiveGoal, effectiveTimeMode, favTopic],
       },
     }
   );
@@ -130,11 +124,12 @@ export function HomePage() {
   const switchMode = (newGoal: PreferencesInputGoal) => {
     if (!sessionId) return;
     savePreferences.mutate(
-      { data: { goal: newGoal, timeMode: (preferences?.timeMode as PreferencesInputTimeMode) ?? "5min", sessionId } },
+      { data: { goal: newGoal, timeMode: effectiveTimeMode, favTopic, sessionId } },
       {
         onSuccess: (data) => {
           queryClient.setQueryData(getGetPreferencesQueryKey(), data);
           queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
+          localStorage.setItem("ma_goal", newGoal);
           setShowModeSwitch(false);
         },
       }
@@ -210,6 +205,11 @@ export function HomePage() {
 
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">{config.title}</h1>
           <p className="text-muted-foreground text-sm sm:text-base font-medium">{config.subtitle}</p>
+          {favTopic && (
+            <p className="text-xs text-primary/70 font-medium">
+              ⭐ Showing <span className="font-bold text-primary">{favTopic}</span> stories first — your top pick.
+            </p>
+          )}
         </div>
 
         {/* Topic filter — only for stay-updated mode */}

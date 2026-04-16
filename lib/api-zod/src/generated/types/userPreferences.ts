@@ -11,6 +11,8 @@ import type { UserPreferencesTimeMode } from "./userPreferencesTimeMode";
 export interface UserPreferences {
   goal?: UserPreferencesGoal;
   timeMode?: UserPreferencesTimeMode;
+  /** User's favourite news topic category */
+  favTopic?: string;
   hasCompletedOnboarding: boolean;
   sessionId?: string;
 }

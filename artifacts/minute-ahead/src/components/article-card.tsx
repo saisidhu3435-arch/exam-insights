@@ -1,6 +1,6 @@
 import { Link } from "wouter";
 import { Clock, ThumbsUp, ThumbsDown, ArrowRight, Sparkles, GraduationCap, Zap } from "lucide-react";
-import type { NewsArticle } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { NewsArticle } from "@workspace/api-client-react";
 import { useCreateReaction, useGetReactions, getGetReactionsQueryKey } from "@workspace/api-client-react";
 import { Badge } from "./ui/badge";
 import { useSessionId } from "@/hooks/use-session";

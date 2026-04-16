@@ -5,7 +5,7 @@ import { useGetPreferences, useSavePreferences, getGetPreferencesQueryKey } from
 import { useSessionId } from "@/hooks/use-session";
 import { useStreak } from "@/hooks/use-streak";
 import { useQueryClient } from "@tanstack/react-query";
-import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react/src/generated/api.schemas";
+import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react";
 import { useState } from "react";
 
 const goals: { value: PreferencesInputGoal; icon: React.ReactNode; label: string; sub: string; color: string }[] = [

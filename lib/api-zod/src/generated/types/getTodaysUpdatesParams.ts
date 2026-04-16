@@ -17,4 +17,8 @@ export type GetTodaysUpdatesParams = {
    * Filter by user goal
    */
   goal?: GetTodaysUpdatesGoal;
+  /**
+   * Boost articles from this topic category to the top
+   */
+  favTopic?: string;
 };
