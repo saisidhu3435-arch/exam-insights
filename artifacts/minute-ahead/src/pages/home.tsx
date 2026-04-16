@@ -2,56 +2,49 @@ import { useGetPreferences, useGetTodaysUpdates } from "@workspace/api-client-re
 import { ArticleCard } from "@/components/article-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStreak } from "@/hooks/use-streak";
-import { Flame, BookOpen, Zap } from "lucide-react";
+import { Flame, BookOpen, Zap, Sparkles } from "lucide-react";
 
 function StreakBadge({ count }: { count: number }) {
   if (count === 0) return null;
-
   const label =
-    count >= 30
-      ? "You're unstoppable."
-      : count >= 14
-      ? "Two weeks strong!"
-      : count >= 7
-      ? "One week streak!"
-      : count >= 3
-      ? "On a roll!"
-      : "Keep it up!";
-
+    count >= 30 ? "Unstoppable." : count >= 14 ? "Two weeks!" : count >= 7 ? "One week!" : count >= 3 ? "On a roll!" : "Keep it up!";
   return (
-    <div className="flex items-center gap-2 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-full px-4 py-2">
-      <Flame className="w-4 h-4 text-orange-500 fill-orange-500" />
-      <span className="text-sm font-bold text-orange-600">
-        {count} day streak
-      </span>
-      <span className="text-xs text-muted-foreground">{label}</span>
+    <div className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-full px-3 py-1.5">
+      <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
+      <span className="text-xs font-bold text-orange-600">{count} day streak</span>
+      <span className="text-[11px] text-muted-foreground">· {label}</span>
     </div>
   );
 }
 
-function GoalBadge({ goal }: { goal?: string }) {
-  if (!goal) return null;
-  const map: Record<string, { icon: React.ReactNode; label: string }> = {
-    exams: { icon: <BookOpen className="w-3.5 h-3.5" />, label: "Exam Mode" },
-    "stay-updated": { icon: <Zap className="w-3.5 h-3.5" />, label: "Quick Brief" },
-    "general-knowledge": { icon: <BookOpen className="w-3.5 h-3.5" />, label: "Deep Dive" },
-  };
-  const item = map[goal];
-  if (!item) return null;
-  return (
-    <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-      {item.icon}
-      {item.label}
-    </div>
-  );
-}
+const goalConfig = {
+  "stay-updated": {
+    icon: <Zap className="w-4 h-4" />,
+    label: "Quick Brief",
+    title: "Today's Brief.",
+    subtitle: "Just the news. No fluff. No noise.",
+  },
+  exams: {
+    icon: <BookOpen className="w-4 h-4" />,
+    label: "Exam Mode",
+    title: "Today's Study Pack.",
+    subtitle: "Every story explained for your exam.",
+  },
+  "general-knowledge": {
+    icon: <Sparkles className="w-4 h-4" />,
+    label: "Deep Dive",
+    title: "Today's Stories.",
+    subtitle: "Understand the world, one story at a time.",
+  },
+};
 
 export function HomePage() {
   const [, setLocation] = useLocation();
   const { data: preferences, isLoading: prefsLoading } = useGetPreferences();
   const { streak } = useStreak();
+  const [activeTopic, setActiveTopic] = useState<string>("All");
 
   useEffect(() => {
     if (!prefsLoading && preferences && !preferences.hasCompletedOnboarding) {
@@ -60,10 +53,7 @@ export function HomePage() {
   }, [preferences, prefsLoading, setLocation]);
 
   const { data: updates, isLoading: updatesLoading } = useGetTodaysUpdates(
-    {
-      goal: preferences?.goal,
-      timeMode: preferences?.timeMode,
-    },
+    { goal: preferences?.goal, timeMode: preferences?.timeMode },
     {
       query: {
         enabled: !!preferences?.hasCompletedOnboarding,
@@ -72,13 +62,22 @@ export function HomePage() {
     }
   );
 
+  const topics = useMemo(() => {
+    if (!updates) return ["All"];
+    const cats = Array.from(new Set(updates.map((a) => a.category)));
+    return ["All", ...cats];
+  }, [updates]);
+
+  const filteredUpdates = useMemo(() => {
+    if (!updates) return [];
+    if (activeTopic === "All") return updates;
+    return updates.filter((a) => a.category === activeTopic);
+  }, [updates, activeTopic]);
+
   if (prefsLoading || (preferences?.hasCompletedOnboarding && updatesLoading)) {
     return (
-      <div className="p-4 space-y-6">
-        <div className="space-y-2 pt-2">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </div>
+      <div className="p-4 sm:p-6 space-y-6">
+        <Skeleton className="h-12 w-64" />
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-52 w-full rounded-2xl" />
@@ -88,59 +87,84 @@ export function HomePage() {
     );
   }
 
-  if (!preferences?.hasCompletedOnboarding) {
-    return null;
-  }
+  if (!preferences?.hasCompletedOnboarding) return null;
 
-  const now = new Date();
-  const hour = now.getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const goal = preferences.goal as keyof typeof goalConfig;
+  const config = goalConfig[goal] ?? goalConfig["stay-updated"];
 
   return (
-    <div className="p-4 sm:p-6 space-y-6 animate-in fade-in duration-500">
-      {/* Header section */}
-      <div className="pt-2 space-y-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-muted-foreground text-sm font-medium">{greeting}.</p>
-            <h1 className="text-3xl font-extrabold tracking-tight leading-tight">
-              Today's Brief.
-            </h1>
+    <div className="p-4 sm:p-6 pb-16 space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="pt-4 space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <p className="text-muted-foreground text-sm font-medium">{greeting}.</p>
+          <div className="flex items-center gap-1.5 text-xs font-bold text-primary bg-primary/10 px-3 py-1.5 rounded-full">
+            {config.icon}
+            {config.label}
           </div>
-          <GoalBadge goal={preferences.goal} />
         </div>
-
+        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight leading-tight">{config.title}</h1>
+        <p className="text-muted-foreground text-sm sm:text-base font-medium">{config.subtitle}</p>
         <StreakBadge count={streak} />
-
-        <p className="text-muted-foreground text-sm font-medium">
-          {updates?.length ?? 0} stories selected for you. No noise, just clarity.
-        </p>
       </div>
 
-      {/* Article cards */}
-      <div className="grid gap-4">
-        {updates?.map((article) => (
-          <ArticleCard key={article.id} article={article} />
-        ))}
-      </div>
+      {/* Topic filter — only for stay-updated mode */}
+      {goal === "stay-updated" && topics.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 sm:-mx-6 sm:px-6 scrollbar-hide">
+          {topics.map((topic) => (
+            <button
+              key={topic}
+              onClick={() => setActiveTopic(topic)}
+              className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
+                activeTopic === topic
+                  ? "bg-foreground text-background"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
+              }`}
+            >
+              {topic}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {updates?.length === 0 && (
-        <div className="text-center py-16 space-y-2">
-          <p className="text-2xl">You're all caught up</p>
-          <p className="text-muted-foreground text-sm">
-            New stories drop every morning. Come back tomorrow.
+      {/* Mode-specific intro for exams */}
+      {goal === "exams" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-amber-900 font-semibold">
+            Each story includes the constitutional articles, key facts, and the exam angle you need.
           </p>
         </div>
       )}
 
-      {/* Bottom nudge */}
-      {(updates?.length ?? 0) > 0 && (
-        <div className="text-center pb-2">
-          <p className="text-xs text-muted-foreground font-medium">
-            Read one story a day. Stay a year ahead.
+      {/* Mode-specific intro for general-knowledge */}
+      {goal === "general-knowledge" && (
+        <div className="bg-purple-50 border border-purple-200 rounded-xl px-4 py-3">
+          <p className="text-xs text-purple-900 font-semibold">
+            Every story is told as a story — and you can ask our AI tutor anything inside.
           </p>
         </div>
+      )}
+
+      {/* Cards */}
+      <div className="grid gap-4">
+        {filteredUpdates.map((article) => (
+          <ArticleCard key={article.id} article={article} mode={goal} />
+        ))}
+      </div>
+
+      {filteredUpdates.length === 0 && (
+        <div className="text-center py-16 space-y-2">
+          <p className="text-2xl font-bold">Nothing here yet</p>
+          <p className="text-muted-foreground text-sm">Try a different topic, or come back tomorrow.</p>
+        </div>
+      )}
+
+      {filteredUpdates.length > 0 && (
+        <p className="text-center text-xs text-muted-foreground font-medium pt-4">
+          Read one story a day. Stay a year ahead.
+        </p>
       )}
     </div>
   );
