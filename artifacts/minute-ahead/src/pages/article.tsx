@@ -1,7 +1,7 @@
 import { useParams, Link } from "wouter";
 import { useGetNewsArticle, useGetReactions, useCreateReaction, getGetReactionsQueryKey } from "@workspace/api-client-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Clock, ThumbsUp, ThumbsDown, Bookmark, Share2 } from "lucide-react";
+import { ArrowLeft, Clock, ThumbsUp, ThumbsDown, Bookmark, Share2, BookOpen } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useSessionId } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
@@ -145,5 +145,3 @@ export function ArticlePage() {
   );
 }
 
-// Add BookOpen import
-import { BookOpen as BookOpenIcon } from "lucide-react";

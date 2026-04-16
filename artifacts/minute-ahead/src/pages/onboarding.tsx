@@ -53,7 +53,7 @@ export function OnboardingPage() {
     >
       <div className="flex-1 flex flex-col justify-center animate-in slide-in-from-bottom-4 duration-500">
         <div className="mb-10 flex justify-center">
-          <img src={logoImg} alt="Minute Ahead" className="h-16 w-auto" />
+          <img src={logoImg} alt="Minute Ahead" className="h-28 w-auto mix-blend-multiply" />
         </div>
 
         {step === 1 && (

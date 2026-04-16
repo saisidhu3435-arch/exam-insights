@@ -9,7 +9,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-[100dvh] flex flex-col max-w-md mx-auto w-full bg-card border-x border-border shadow-2xl relative">
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-center">
         <Link href="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <img src={logoImg} alt="Minute Ahead" className="h-10 w-auto object-contain" />
+          <img src={logoImg} alt="Minute Ahead" className="h-16 w-auto object-contain mix-blend-multiply" />
         </Link>
       </header>
 
