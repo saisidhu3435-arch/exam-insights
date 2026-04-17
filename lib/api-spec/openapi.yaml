@@ -187,6 +187,13 @@ paths:
       tags: [users]
       summary: Get user preferences
       description: Returns stored user preferences from session
+      parameters:
+        - name: sessionId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: The user's session ID from localStorage
       responses:
         "200":
           description: User preferences

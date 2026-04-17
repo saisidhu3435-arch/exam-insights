@@ -189,3 +189,10 @@ export const GetTodaysUpdatesGoal = {
   exams: "exams",
   "general-knowledge": "general-knowledge",
 } as const;
+
+export type GetPreferencesParams = {
+  /**
+   * The user's session ID from localStorage
+   */
+  sessionId?: string;
+};

@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUser } from "@clerk/react";
 import { useSessionId } from "@/hooks/use-session";
-import { useSavePreferences, useGetPreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
+import { useSavePreferences, useGetPreferences } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { PreferencesInputGoal, PreferencesInputTimeMode } from "@workspace/api-client-react";
 
@@ -73,7 +73,10 @@ export function WelcomePage() {
   const [, setLocation] = useLocation();
   const sessionId = useSessionId();
   const queryClient = useQueryClient();
-  const { data: preferences, isLoading: prefsLoading } = useGetPreferences();
+  const { data: preferences, isLoading: prefsLoading } = useGetPreferences(
+    { sessionId },
+    { query: { enabled: !!sessionId, queryKey: ["preferences", sessionId] } }
+  );
   const savePreferences = useSavePreferences();
 
   const [step, setStep] = useState<Step>("time");
@@ -82,9 +85,10 @@ export function WelcomePage() {
 
   const firstName = user?.firstName ?? "there";
 
-  // If already completed onboarding, skip to home
+  // If the user has already picked a fav topic, skip the welcome flow
   useEffect(() => {
-    if (!prefsLoading && preferences?.hasCompletedOnboarding) {
+    const pref = preferences as (typeof preferences & { favTopic?: string }) | undefined;
+    if (!prefsLoading && pref?.hasCompletedOnboarding && pref?.favTopic) {
       setLocation("/");
     }
   }, [prefsLoading, preferences, setLocation]);
@@ -104,7 +108,7 @@ export function WelcomePage() {
       },
       {
         onSuccess: (data) => {
-          queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+          queryClient.setQueryData(["preferences", sessionId], data);
           queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
           localStorage.setItem("ma_goal", goal);
           localStorage.setItem("ma_time_mode", timeMode);

@@ -66,7 +66,10 @@ export function ArticlePage() {
   const { markRead } = useStreak();
   const [shared, setShared] = useState(false);
 
-  const { data: preferences } = useGetPreferences();
+  const { data: preferences } = useGetPreferences(
+    { sessionId },
+    { query: { enabled: !!sessionId, queryKey: ["preferences", sessionId] } }
+  );
   const goal = preferences?.goal ?? "stay-updated";
 
   const { data: article, isLoading } = useGetNewsArticle(id, {

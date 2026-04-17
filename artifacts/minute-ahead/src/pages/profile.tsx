@@ -1,7 +1,7 @@
 import { useUser, useClerk, Show } from "@clerk/react";
 import { Link } from "wouter";
 import { LogIn, LogOut, User, BookOpen, Zap, Sparkles, Clock, Coffee, Flame, Award, CheckCircle2 } from "lucide-react";
-import { useGetPreferences, useSavePreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
+import { useGetPreferences, useSavePreferences } from "@workspace/api-client-react";
 import { useSessionId } from "@/hooks/use-session";
 import { useStreak } from "@/hooks/use-streak";
 import { useQueryClient } from "@tanstack/react-query";
@@ -37,18 +37,22 @@ export function ProfilePage() {
   const sessionId = useSessionId();
   const { streak } = useStreak();
   const queryClient = useQueryClient();
-  const { data: preferences } = useGetPreferences();
+  const { data: preferences } = useGetPreferences(
+    { sessionId },
+    { query: { enabled: !!sessionId, queryKey: ["preferences", sessionId] } }
+  );
   const savePreferences = useSavePreferences();
   const [saved, setSaved] = useState(false);
 
   const handleGoal = (g: PreferencesInputGoal) => {
     if (!sessionId) return;
     const tm = (preferences?.timeMode as PreferencesInputTimeMode) ?? "5min";
+    const fav = (preferences as { favTopic?: string } | undefined)?.favTopic;
     savePreferences.mutate(
-      { data: { goal: g, timeMode: tm, sessionId } },
+      { data: { goal: g, timeMode: tm, ...(fav ? { favTopic: fav } : {}), sessionId } },
       {
         onSuccess: (data) => {
-          queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+          queryClient.setQueryData(["preferences", sessionId], data);
           queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);
@@ -60,11 +64,12 @@ export function ProfilePage() {
   const handleTime = (t: PreferencesInputTimeMode) => {
     if (!sessionId) return;
     const g = (preferences?.goal as PreferencesInputGoal) ?? "stay-updated";
+    const fav = (preferences as { favTopic?: string } | undefined)?.favTopic;
     savePreferences.mutate(
-      { data: { goal: g, timeMode: t, sessionId } },
+      { data: { goal: g, timeMode: t, ...(fav ? { favTopic: fav } : {}), sessionId } },
       {
         onSuccess: (data) => {
-          queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+          queryClient.setQueryData(["preferences", sessionId], data);
           queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
           setSaved(true);
           setTimeout(() => setSaved(false), 2000);

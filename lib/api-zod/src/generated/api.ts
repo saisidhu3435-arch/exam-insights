@@ -187,6 +187,13 @@ export const GetReactionsResponse = zod.object({
  * Returns stored user preferences from session
  * @summary Get user preferences
  */
+export const GetPreferencesQueryParams = zod.object({
+  sessionId: zod.coerce
+    .string()
+    .optional()
+    .describe("The user's session ID from localStorage"),
+});
+
 export const GetPreferencesResponse = zod.object({
   goal: zod.enum(["stay-updated", "exams", "general-knowledge"]).optional(),
   timeMode: zod.enum(["2min", "5min", "10min"]).optional(),

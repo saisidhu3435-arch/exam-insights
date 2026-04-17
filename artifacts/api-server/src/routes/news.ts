@@ -42,18 +42,15 @@ router.get("/news/today", async (req, res) => {
     const params = parsed.success ? parsed.data : {};
     const favTopic = (req.query.favTopic as string) ?? null;
 
-    const limit = params.goal === "exams" ? 6 : params.timeMode === "2min" ? 3 : 5;
+    // Reading time controls how many articles to show, NOT which articles to filter
+    const limit = params.goal === "exams" ? 7 : params.timeMode === "2min" ? 3 : params.timeMode === "10min" ? 8 : 5;
 
-    // Fetch more than needed so we can reorder by favTopic
-    let query = db.select().from(newsArticlesTable).$dynamic();
-
-    if (params.timeMode) {
-      query = query.where(eq(newsArticlesTable.readingTime, params.timeMode as "2min" | "5min" | "10min"));
-    }
-
-    const allArticles = await query
+    // Fetch a wide pool of recent articles (no reading_time filter — it was causing near-empty feeds)
+    const allArticles = await db
+      .select()
+      .from(newsArticlesTable)
       .orderBy(desc(newsArticlesTable.isFeatured), desc(newsArticlesTable.publishedAt))
-      .limit(limit * 3);
+      .limit(40);
 
     // Boost favTopic articles to the top
     let articles = allArticles;

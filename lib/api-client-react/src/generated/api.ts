@@ -19,6 +19,7 @@ import type {
 import type {
   Category,
   ErrorResponse,
+  GetPreferencesParams,
   GetTodaysUpdatesParams,
   HealthStatus,
   ListNewsParams,
@@ -650,41 +651,57 @@ export function useGetReactions<
  * Returns stored user preferences from session
  * @summary Get user preferences
  */
-export const getGetPreferencesUrl = () => {
-  return `/api/preferences`;
+export const getGetPreferencesUrl = (params?: GetPreferencesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/preferences?${stringifiedParams}`
+    : `/api/preferences`;
 };
 
 export const getPreferences = async (
+  params?: GetPreferencesParams,
   options?: RequestInit,
 ): Promise<UserPreferences> => {
-  return customFetch<UserPreferences>(getGetPreferencesUrl(), {
+  return customFetch<UserPreferences>(getGetPreferencesUrl(params), {
     ...options,
     method: "GET",
   });
 };
 
-export const getGetPreferencesQueryKey = () => {
-  return [`/api/preferences`] as const;
+export const getGetPreferencesQueryKey = (params?: GetPreferencesParams) => {
+  return [`/api/preferences`, ...(params ? [params] : [])] as const;
 };
 
 export const getGetPreferencesQueryOptions = <
   TData = Awaited<ReturnType<typeof getPreferences>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPreferences>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}) => {
+>(
+  params?: GetPreferencesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPreferences>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
   const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey = queryOptions?.queryKey ?? getGetPreferencesQueryKey();
+  const queryKey = queryOptions?.queryKey ?? getGetPreferencesQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getPreferences>>> = ({
     signal,
-  }) => getPreferences({ signal, ...requestOptions });
+  }) => getPreferences(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof getPreferences>>,
@@ -705,15 +722,18 @@ export type GetPreferencesQueryError = ErrorType<unknown>;
 export function useGetPreferences<
   TData = Awaited<ReturnType<typeof getPreferences>>,
   TError = ErrorType<unknown>,
->(options?: {
-  query?: UseQueryOptions<
-    Awaited<ReturnType<typeof getPreferences>>,
-    TError,
-    TData
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
-  const queryOptions = getGetPreferencesQueryOptions(options);
+>(
+  params?: GetPreferencesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPreferences>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPreferencesQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

@@ -45,15 +45,27 @@ async function fetchRssFeed(url: string): Promise<RssItem[]> {
   }
 }
 
+// Canonical category names — must match the welcome flow topic values exactly
+const CATEGORIES = [
+  "Law",
+  "Economy",
+  "Politics",
+  "International Relations",
+  "Environment",
+  "Science & Technology",
+  "National Security",
+  "Social",
+] as const;
+
 function determineCategory(title: string, desc: string): string {
   const text = `${title} ${desc}`.toLowerCase();
-  if (/court|law|constitution|judge|verdict|tribunal|legal|section|article \d/.test(text)) return "Law";
-  if (/rbi|economy|budget|gdp|inflation|rupee|bank|finance|tax|fiscal/.test(text)) return "Economy";
-  if (/parliament|minister|government|policy|lok sabha|rajya sabha|bjp|congress|election/.test(text)) return "Politics";
-  if (/china|pakistan|usa|america|russia|international|bilateral|treaty|foreign|un |united nations/.test(text)) return "International";
-  if (/environment|climate|pollution|forest|wildlife|water|energy|renewable/.test(text)) return "Environment";
-  if (/technology|ai|artificial intelligence|digital|cyber|space|isro|tech/.test(text)) return "Technology";
-  if (/science|research|health|vaccine|disease|covid|cancer|discovery/.test(text)) return "Science";
+  if (/court|law|constitution|judge|verdict|tribunal|legal|section|article \d|high court|supreme court/.test(text)) return "Law";
+  if (/rbi|economy|budget|gdp|inflation|rupee|bank|finance|tax|fiscal|trade/.test(text)) return "Economy";
+  if (/parliament|minister|government|policy|lok sabha|rajya sabha|bjp|congress|election|modi|governance/.test(text)) return "Politics";
+  if (/china|pakistan|usa|america|russia|international|bilateral|treaty|foreign|united nations|global/.test(text)) return "International Relations";
+  if (/environment|climate|pollution|forest|wildlife|water|energy|renewable|carbon/.test(text)) return "Environment";
+  if (/technology|ai |artificial intelligence|digital|cyber|space|isro|tech|science|research|health/.test(text)) return "Science & Technology";
+  if (/military|army|defence|defense|security|terrorism|border|soldier|attack|nuclear/.test(text)) return "National Security";
   return "Social";
 }
 
@@ -85,10 +97,11 @@ Generate a JSON response with EXACTLY these fields:
   "fullExplanation": "3-4 paragraphs explaining what happened, the background context, and what it means. Write clearly for a 16-year-old. Use proper paragraph breaks (\\n\\n).",
   "whyItMatters": "One sentence: why this matters for India and its citizens (max 150 chars)",
   "examRelevance": "Specific exam relevance: which constitutional articles, government schemes, or concepts does this relate to? (max 200 chars)",
-  "readingTime": "2min"
+  "category": "Pick the single best category from: Law, Economy, Politics, International Relations, Environment, Science & Technology, National Security, Social",
+  "readingTime": "Choose: '2min' for quick updates, '5min' for moderate depth, '10min' for complex multi-layered stories"
 }
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no explanation. The readingTime must always be "2min".`;
+IMPORTANT: Return ONLY valid JSON, no markdown, no explanation.`;
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5",
@@ -102,14 +115,23 @@ IMPORTANT: Return ONLY valid JSON, no markdown, no explanation. The readingTime 
     const jsonText = block.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
     const data = JSON.parse(jsonText);
 
+    // Validate category — must be one of the canonical names
+    const rawCategory = String(data.category ?? "").trim();
+    const validCategory = (CATEGORIES as readonly string[]).includes(rawCategory) ? rawCategory : category;
+
+    // Validate readingTime
+    const rawTime = String(data.readingTime ?? "").trim();
+    const validReadingTime: "2min" | "5min" | "10min" =
+      rawTime === "5min" ? "5min" : rawTime === "10min" ? "10min" : "2min";
+
     return {
       headline: String(data.headline ?? item.title).slice(0, 255),
       summary: String(data.summary ?? "").slice(0, 500),
       fullExplanation: String(data.fullExplanation ?? ""),
       whyItMatters: String(data.whyItMatters ?? "").slice(0, 500),
       examRelevance: String(data.examRelevance ?? "").slice(0, 500),
-      category: data.category ?? category,
-      readingTime: "2min",
+      category: validCategory,
+      readingTime: validReadingTime,
     };
   } catch {
     return null;

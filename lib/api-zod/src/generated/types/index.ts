@@ -8,6 +8,7 @@
 
 export * from "./category";
 export * from "./errorResponse";
+export * from "./getPreferencesParams";
 export * from "./getTodaysUpdatesGoal";
 export * from "./getTodaysUpdatesParams";
 export * from "./getTodaysUpdatesTimeMode";

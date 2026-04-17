@@ -1,4 +1,4 @@
-import { useGetPreferences, useGetTodaysUpdates, useSavePreferences, getGetPreferencesQueryKey } from "@workspace/api-client-react";
+import { useGetPreferences, useGetTodaysUpdates, useSavePreferences } from "@workspace/api-client-react";
 import { ArticleCard } from "@/components/article-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
@@ -69,7 +69,10 @@ export function HomePage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
 
-  const { data: preferences, isLoading: prefsLoading } = useGetPreferences();
+  const { data: preferences, isLoading: prefsLoading } = useGetPreferences(
+    { sessionId },
+    { query: { enabled: !!sessionId, queryKey: ["preferences", sessionId] } }
+  );
   const savePreferences = useSavePreferences();
 
   // Read localStorage fallbacks for anonymous users
@@ -127,7 +130,7 @@ export function HomePage() {
       { data: { goal: newGoal, timeMode: effectiveTimeMode, favTopic, sessionId } },
       {
         onSuccess: (data) => {
-          queryClient.setQueryData(getGetPreferencesQueryKey(), data);
+          queryClient.setQueryData(["preferences", sessionId], data);
           queryClient.invalidateQueries({ queryKey: ["todays-updates"] });
           localStorage.setItem("ma_goal", newGoal);
           setShowModeSwitch(false);
