@@ -81,27 +81,39 @@ async function enrichWithAI(item: RssItem): Promise<{
   try {
     const category = determineCategory(item.title, item.description ?? "");
 
-    const prompt = `You are writing for "Minute Ahead" — a news app for Indian students preparing for CLAT, AILET, and UPSC exams.
+    const prompt = `You write for "Minute Ahead" — a news app for Indian students (16–22 years old) preparing for CLAT, AILET, and UPSC.
 
-Given this news headline and description, generate educational content:
-
+NEWS:
 HEADLINE: ${item.title}
-SOURCE: ${item.source ?? "news article"}
 DATE: ${item.pubDate}
 DESCRIPTION: ${item.description ?? "(none)"}
 
+Your job: make this news feel like a smart friend is explaining it over a quick phone call. Not a textbook. Not a news bulletin.
+
+STRICT WRITING RULES — follow every single one:
+1. HOOK FIRST. The very first sentence must make the reader stop and pay attention. It can be a surprising fact, a question, a contrast, or a dramatic statement. NOT "The Supreme Court today..." — that's boring.
+2. NO hyphens, no em-dashes (— or -), no bullet points, no numbered lists inside explanations.
+3. NO AI filler words. Never use: notably, importantly, furthermore, it is worth noting, essentially, significantly, in conclusion, this means that, it is important to understand.
+4. Short sentences. If a sentence has more than 20 words, cut it in two.
+5. One idea per paragraph. Max 3 sentences per paragraph. Two blank lines between paragraphs.
+6. Use plain active language. "The court banned it" not "The court has issued a ban on".
+7. Every sentence should be immediately clear on first read — no re-reading needed.
+8. Speak directly. "You need to know this because..." not "This is relevant to students because...".
+9. The headline must sound like something you'd click on — make it punchy, not formal.
+10. The summary is the one sentence someone texts a friend. Conversational. Clear. Under 120 characters.
+
 Generate a JSON response with EXACTLY these fields:
 {
-  "headline": "Rewrite the headline to be curiosity-driving but factually accurate (max 90 chars)",
-  "summary": "A one-sentence powerful summary students can understand instantly (max 120 chars)",
-  "fullExplanation": "3-4 paragraphs explaining what happened, the background context, and what it means. Write clearly for a 16-year-old. Use proper paragraph breaks (\\n\\n).",
-  "whyItMatters": "One sentence: why this matters for India and its citizens (max 150 chars)",
-  "examRelevance": "Specific exam relevance: which constitutional articles, government schemes, or concepts does this relate to? (max 200 chars)",
-  "category": "Pick the single best category from: Law, Economy, Politics, International Relations, Environment, Science & Technology, National Security, Social",
-  "readingTime": "Choose: '2min' for quick updates, '5min' for moderate depth, '10min' for complex multi-layered stories"
+  "headline": "Punchy, curiosity-driving headline. Factually accurate. Max 90 chars. No colons if possible.",
+  "summary": "One conversational sentence — what happened in plain English. Max 120 chars.",
+  "fullExplanation": "3-4 paragraphs following ALL the writing rules above. Start with a hook. Use \\n\\n between paragraphs. No hyphens. No bullet lists.",
+  "whyItMatters": "One plain sentence: what this actually changes for real people in India. Max 150 chars. No jargon.",
+  "examRelevance": "Which exact constitutional articles, landmark cases, or government schemes link to this? Be specific. Max 200 chars.",
+  "category": "Pick ONE from: Law, Economy, Politics, International Relations, Environment, Science & Technology, National Security, Social",
+  "readingTime": "2min for simple stories, 5min for moderate depth, 10min for complex multi-layered stories"
 }
 
-IMPORTANT: Return ONLY valid JSON, no markdown, no explanation.`;
+IMPORTANT: Return ONLY valid JSON. No markdown. No explanation outside the JSON.`;
 
     const message = await anthropic.messages.create({
       model: "claude-haiku-4-5",
