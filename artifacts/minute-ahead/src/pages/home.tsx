@@ -139,8 +139,10 @@ export function HomePage() {
     );
   };
 
-  const hour = new Date().getHours();
+  const now = new Date();
+  const hour = now.getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const istTime = now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: "Asia/Kolkata" });
 
   return (
     <div ref={containerRef} className="relative min-h-[80vh] overflow-hidden">
@@ -169,7 +171,7 @@ export function HomePage() {
         {/* Header */}
         <div className="pt-4 space-y-3">
           <div className="flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-muted-foreground text-sm font-medium">{greeting}.</p>
+            <p className="text-muted-foreground text-sm font-medium">{greeting} · <span className="font-semibold text-foreground">{istTime} IST</span></p>
             <div className="flex items-center gap-2">
               {streak > 0 && (
                 <span className="text-xs font-bold text-orange-600 bg-orange-100 border border-orange-200 px-2.5 py-1 rounded-full">

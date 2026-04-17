@@ -18,8 +18,8 @@ import {
   CheckCircle2,
   Lightbulb,
   Sparkles,
+  Vote,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { useSessionId } from "@/hooks/use-session";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { useStreak } from "@/hooks/use-streak";
@@ -36,7 +36,6 @@ function extractKeyFacts(text: string): string[] {
     .slice(0, 5);
 }
 
-// Category color map for the article header
 const categoryColors: Record<string, string> = {
   Politics:              "from-blue-600 to-blue-800",
   Economy:               "from-emerald-600 to-teal-700",
@@ -55,6 +54,128 @@ const categoryColors: Record<string, string> = {
 
 function getCategoryGradient(category: string): string {
   return categoryColors[category] ?? "from-primary to-red-800";
+}
+
+// Scenario-based poll prompts per category
+const SCENARIO_POLLS: Record<string, { prompt: string; options: string[] }> = {
+  Law:       { prompt: "If you were the judge, what would your decision be?", options: ["Rule in favour of the petitioner", "Dismiss the petition", "Refer it to a larger bench"] },
+  Politics:  { prompt: "If you were the lawmaker, what would you do?", options: ["Pass the bill as proposed", "Amend before passing", "Reject and start fresh"] },
+  Economy:   { prompt: "If you were the Finance Minister, what's your call?", options: ["Raise interest rates", "Cut taxes to boost growth", "Stay the course, no change"] },
+  Environment: { prompt: "As a policymaker, what's your priority?", options: ["Strict penalties for violators", "Incentivise green alternatives", "International cooperation first"] },
+  "International Relations": { prompt: "If you were the Foreign Minister, what's the move?", options: ["Diplomatic dialogue", "Impose sanctions", "Strengthen bilateral ties"] },
+  "National Security": { prompt: "As the security chief, what would you order?", options: ["Increase border patrols", "Engage in intelligence sharing", "Strengthen domestic surveillance"] },
+  "Science & Technology": { prompt: "As an ethics board member, how do you vote?", options: ["Approve — innovation matters", "Approve with strict oversight", "Reject — too risky"] },
+  Social:    { prompt: "If you could set the policy, what would you choose?", options: ["More government-led welfare", "Empower community initiatives", "Public-private partnership"] },
+  default:   { prompt: "What's your take on this issue?", options: ["Strong action needed now", "Wait and watch carefully", "More data is required"] },
+};
+
+function getPoll(category: string) {
+  return SCENARIO_POLLS[category] ?? SCENARIO_POLLS.default;
+}
+
+function QuickPoll({ articleId, category }: { articleId: number; category: string }) {
+  const poll = getPoll(category);
+  const storageKey = `ma_poll_${articleId}`;
+
+  const [votes, setVotes] = useState<number[]>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.votes as number[];
+      }
+    } catch {}
+    // Seed with realistic-looking initial data
+    return poll.options.map(() => Math.floor(Math.random() * 40 + 10));
+  });
+  const [userVote, setUserVote] = useState<number | null>(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.userVote ?? null;
+      }
+    } catch {}
+    return null;
+  });
+
+  const total = votes.reduce((a, b) => a + b, 0);
+
+  function vote(idx: number) {
+    if (userVote !== null) return;
+    const newVotes = votes.map((v, i) => (i === idx ? v + 1 : v));
+    setVotes(newVotes);
+    setUserVote(idx);
+    try {
+      localStorage.setItem(storageKey, JSON.stringify({ votes: newVotes, userVote: idx }));
+    } catch {}
+  }
+
+  const hasVoted = userVote !== null;
+
+  return (
+    <div className="rounded-2xl border-2 border-primary/20 bg-primary/5 p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <Vote className="w-5 h-5 text-primary shrink-0" />
+        <h3 className="font-extrabold text-base text-foreground">{poll.prompt}</h3>
+      </div>
+
+      <div className="space-y-2.5">
+        {poll.options.map((option, idx) => {
+          const pct = total > 0 ? Math.round((votes[idx] / total) * 100) : 0;
+          const isChosen = userVote === idx;
+
+          return (
+            <button
+              key={idx}
+              onClick={() => vote(idx)}
+              disabled={hasVoted}
+              className={`w-full text-left rounded-xl overflow-hidden relative transition-all duration-200 ${
+                hasVoted ? "cursor-default" : "hover:scale-[1.01] active:scale-[0.99]"
+              }`}
+            >
+              <div className="relative z-10 flex items-center justify-between px-4 py-3 gap-3">
+                <div className="flex items-center gap-2.5">
+                  {hasVoted && (
+                    <span className={`w-4 h-4 rounded-full border-2 shrink-0 flex items-center justify-center ${
+                      isChosen ? "border-primary bg-primary" : "border-border"
+                    }`}>
+                      {isChosen && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                    </span>
+                  )}
+                  <span className={`text-sm font-semibold ${isChosen ? "text-primary" : "text-foreground"}`}>{option}</span>
+                </div>
+                {hasVoted && (
+                  <span className={`text-sm font-extrabold shrink-0 ${isChosen ? "text-primary" : "text-muted-foreground"}`}>{pct}%</span>
+                )}
+              </div>
+              {/* Progress bar background */}
+              <div
+                className={`absolute inset-0 rounded-xl border transition-all duration-500 ${
+                  isChosen ? "border-primary/40 bg-primary/10" : "border-border bg-secondary/60"
+                }`}
+              />
+              {hasVoted && (
+                <div
+                  className={`absolute inset-y-0 left-0 rounded-xl transition-all duration-700 ease-out ${
+                    isChosen ? "bg-primary/20" : "bg-border/40"
+                  }`}
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {hasVoted && (
+        <p className="text-xs text-muted-foreground text-center font-medium">{total} readers voted</p>
+      )}
+      {!hasVoted && (
+        <p className="text-xs text-muted-foreground text-center font-medium">Tap to vote · see how others think</p>
+      )}
+    </div>
+  );
 }
 
 export function ArticlePage() {
@@ -225,6 +346,8 @@ export function ArticlePage() {
                 <p className="text-muted-foreground font-medium text-sm leading-relaxed">{article.whyItMatters}</p>
               </div>
             )}
+            <QuickPoll articleId={id} category={article.category} />
+            <AskAI articleId={id} />
           </>
         )}
 
@@ -279,6 +402,9 @@ export function ArticlePage() {
                 <p className="text-sm sm:text-base font-medium leading-relaxed text-white/95">{article.examRelevance}</p>
               </div>
             )}
+
+            <QuickPoll articleId={id} category={article.category} />
+            <AskAI articleId={id} />
           </>
         )}
 
@@ -296,6 +422,7 @@ export function ArticlePage() {
                 <p className="text-base font-medium leading-relaxed text-foreground/90">"{article.whyItMatters}"</p>
               </div>
             )}
+            <QuickPoll articleId={id} category={article.category} />
             <AskAI articleId={id} />
           </>
         )}

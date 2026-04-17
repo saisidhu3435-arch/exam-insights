@@ -23,21 +23,18 @@ const TIME_OPTIONS = [
     value: "2min" as PreferencesInputTimeMode,
     label: "2 minutes",
     desc: "Just the headlines — the bare minimum to stay informed.",
-    articles: "3 articles",
     icon: "⚡",
   },
   {
     value: "5min" as PreferencesInputTimeMode,
     label: "5 minutes",
     desc: "A solid daily dose. Enough to know what's happening and why.",
-    articles: "5 articles",
     icon: "📖",
   },
   {
     value: "10min" as PreferencesInputTimeMode,
     label: "10 minutes",
     desc: "Go deep. Great for exam prep and building real GK.",
-    articles: "6+ articles",
     icon: "🎯",
   },
 ];
@@ -66,7 +63,7 @@ const GOAL_OPTIONS = [
   },
 ];
 
-type Step = "time" | "goal" | "topic";
+type Step = "goal" | "time" | "topic";
 
 export function WelcomePage() {
   const { user, isLoaded } = useUser();
@@ -79,13 +76,12 @@ export function WelcomePage() {
   );
   const savePreferences = useSavePreferences();
 
-  const [step, setStep] = useState<Step>("time");
-  const [timeMode, setTimeMode] = useState<PreferencesInputTimeMode | null>(null);
+  const [step, setStep] = useState<Step>("goal");
   const [goal, setGoal] = useState<PreferencesInputGoal | null>(null);
+  const [timeMode, setTimeMode] = useState<PreferencesInputTimeMode | null>(null);
 
   const firstName = user?.firstName ?? "there";
 
-  // If the user has already picked a fav topic, skip the welcome flow
   useEffect(() => {
     const pref = preferences as (typeof preferences & { favTopic?: string }) | undefined;
     if (!prefsLoading && pref?.hasCompletedOnboarding && pref?.favTopic) {
@@ -93,7 +89,7 @@ export function WelcomePage() {
     }
   }, [prefsLoading, preferences, setLocation]);
 
-  const stepIndex = step === "time" ? 0 : step === "goal" ? 1 : 2;
+  const stepIndex = step === "goal" ? 0 : step === "time" ? 1 : 2;
 
   function handleFinish(topic: string) {
     if (!timeMode || !goal || !sessionId) return;
@@ -140,26 +136,26 @@ export function WelcomePage() {
 
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
         <AnimatePresence mode="wait">
-          {step === "time" && (
-            <StepTime
-              key="time"
-              firstName={firstName}
-              selected={timeMode}
-              onSelect={(v) => {
-                setTimeMode(v);
-                setTimeout(() => setStep("goal"), 280);
-              }}
-            />
-          )}
           {step === "goal" && (
             <StepGoal
               key="goal"
+              firstName={firstName}
               selected={goal}
               onSelect={(v) => {
                 setGoal(v);
+                setTimeout(() => setStep("time"), 280);
+              }}
+            />
+          )}
+          {step === "time" && (
+            <StepTime
+              key="time"
+              selected={timeMode}
+              onSelect={(v) => {
+                setTimeMode(v);
                 setTimeout(() => setStep("topic"), 280);
               }}
-              onBack={() => setStep("time")}
+              onBack={() => setStep("goal")}
             />
           )}
           {step === "topic" && (
@@ -167,7 +163,7 @@ export function WelcomePage() {
               key="topic"
               saving={savePreferences.isPending}
               onSelect={(v) => handleFinish(v)}
-              onBack={() => setStep("goal")}
+              onBack={() => setStep("time")}
             />
           )}
         </AnimatePresence>
@@ -175,7 +171,7 @@ export function WelcomePage() {
 
       {/* Step dots */}
       <div className="flex justify-center gap-2 pb-8">
-        {(["time", "goal", "topic"] as Step[]).map((s, i) => (
+        {(["goal", "time", "topic"] as Step[]).map((s, i) => (
           <div
             key={s}
             className={`h-2 rounded-full transition-all duration-300 ${
@@ -188,14 +184,14 @@ export function WelcomePage() {
   );
 }
 
-function StepTime({
+function StepGoal({
   firstName,
   selected,
   onSelect,
 }: {
   firstName: string;
-  selected: PreferencesInputTimeMode | null;
-  onSelect: (v: PreferencesInputTimeMode) => void;
+  selected: PreferencesInputGoal | null;
+  onSelect: (v: PreferencesInputGoal) => void;
 }) {
   return (
     <motion.div
@@ -208,59 +204,8 @@ function StepTime({
       <div className="space-y-2">
         <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 1 of 3</p>
         <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
-          Hey {firstName} 👋<br />Welcome to Minute Ahead.
+          Hey {firstName} 👋<br />Why are you here?
         </h1>
-        <p className="text-gray-500 text-lg">How much time can you give to the news each day?</p>
-      </div>
-
-      <div className="space-y-3">
-        {TIME_OPTIONS.map((opt) => (
-          <button
-            key={opt.value}
-            onClick={() => onSelect(opt.value)}
-            className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
-              selected === opt.value
-                ? "border-primary bg-primary/5 shadow-sm"
-                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
-            }`}
-          >
-            <div className="flex items-start gap-4">
-              <span className="text-2xl">{opt.icon}</span>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-gray-900">{opt.label}</span>
-                  <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">{opt.articles}</span>
-                </div>
-                <p className="text-sm text-gray-500 mt-0.5">{opt.desc}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-    </motion.div>
-  );
-}
-
-function StepGoal({
-  selected,
-  onSelect,
-  onBack,
-}: {
-  selected: PreferencesInputGoal | null;
-  onSelect: (v: PreferencesInputGoal) => void;
-  onBack: () => void;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -24 }}
-      transition={{ duration: 0.35 }}
-      className="w-full max-w-md space-y-8"
-    >
-      <div className="space-y-2">
-        <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 2 of 3</p>
-        <h1 className="text-3xl font-extrabold text-gray-900">Why are you here?</h1>
         <p className="text-gray-500 text-lg">This shapes how every article is presented to you.</p>
       </div>
 
@@ -281,6 +226,56 @@ function StepGoal({
               </div>
               <div>
                 <p className="font-bold text-gray-900">{opt.label}</p>
+                <p className="text-sm text-gray-500 mt-0.5">{opt.desc}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function StepTime({
+  selected,
+  onSelect,
+  onBack,
+}: {
+  selected: PreferencesInputTimeMode | null;
+  onSelect: (v: PreferencesInputTimeMode) => void;
+  onBack: () => void;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -24 }}
+      transition={{ duration: 0.35 }}
+      className="w-full max-w-md space-y-8"
+    >
+      <div className="space-y-2">
+        <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 2 of 3</p>
+        <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
+          How much time can you give to the news each day?
+        </h1>
+        <p className="text-gray-500 text-lg">We'll keep your daily brief tight and focused.</p>
+      </div>
+
+      <div className="space-y-3">
+        {TIME_OPTIONS.map((opt) => (
+          <button
+            key={opt.value}
+            onClick={() => onSelect(opt.value)}
+            className={`w-full text-left rounded-2xl border-2 p-4 transition-all duration-200 ${
+              selected === opt.value
+                ? "border-primary bg-primary/5 shadow-sm"
+                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <span className="text-2xl">{opt.icon}</span>
+              <div className="flex-1">
+                <span className="font-bold text-gray-900 block">{opt.label}</span>
                 <p className="text-sm text-gray-500 mt-0.5">{opt.desc}</p>
               </div>
             </div>

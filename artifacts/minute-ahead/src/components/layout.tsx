@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
 import { Compass, BookOpen, User } from "lucide-react";
-import logoImg from "@assets/logo-transparent.png";
 import { useStreak } from "@/hooks/use-streak";
 import { useUser } from "@clerk/react";
 
@@ -37,11 +36,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {/* Logo + brand name */}
-          <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity mr-auto">
-            <img src={logoImg} alt="Minute Ahead" className="h-10 w-auto object-contain shrink-0" />
-            <span className="font-extrabold text-lg leading-tight tracking-tight text-foreground hidden sm:block">
-              Minute<br className="hidden" />
-              <span className="text-primary"> Ahead</span>
+          <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-auto">
+            <span className="font-black text-lg leading-none tracking-tight text-foreground">
+              Minute<span className="text-primary"> Ahead</span>
             </span>
           </Link>
 
