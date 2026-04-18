@@ -19,7 +19,6 @@ import {
   Lightbulb,
   Sparkles,
   Vote,
-  ImageOff,
 } from "lucide-react";
 import { useSessionId } from "@/hooks/use-session";
 import { useBookmarks } from "@/hooks/use-bookmarks";
@@ -37,24 +36,72 @@ function extractKeyFacts(text: string): string[] {
     .slice(0, 5);
 }
 
-const categoryColors: Record<string, string> = {
-  Politics:                  "from-blue-600 to-blue-800",
-  Economy:                   "from-emerald-600 to-teal-700",
-  International:             "from-indigo-600 to-purple-700",
-  "International Relations": "from-indigo-600 to-purple-700",
-  Science:                   "from-cyan-500 to-blue-600",
-  "Science & Technology":    "from-cyan-500 to-blue-600",
-  Technology:                "from-violet-600 to-purple-700",
-  Environment:               "from-green-600 to-lime-700",
-  Law:                       "from-red-700 to-rose-800",
-  Social:                    "from-orange-500 to-amber-600",
-  "National Security":       "from-slate-700 to-slate-900",
-  Security:                  "from-slate-700 to-slate-900",
-  Defense:                   "from-slate-600 to-gray-800",
+// Multiple images per category for variety — picked by (articleId % length)
+const CATEGORY_IMAGE_POOLS: Record<string, string[]> = {
+  Law: [
+    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&q=85&auto=format&fit=crop",
+  ],
+  Economy: [
+    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1607863680198-23d4b2565df0?w=1200&q=85&auto=format&fit=crop",
+  ],
+  Politics: [
+    "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1575986767340-5d17ae767ab0?w=1200&q=85&auto=format&fit=crop",
+  ],
+  "International Relations": [
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
+  ],
+  Environment: [
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=1200&q=85&auto=format&fit=crop",
+  ],
+  "Science & Technology": [
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=1200&q=85&auto=format&fit=crop",
+  ],
+  "National Security": [
+    "https://images.unsplash.com/photo-1579762593175-20226054cad0?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1521791055366-0d553872952f?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1473321679-1eae777cc2f7?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=1200&q=85&auto=format&fit=crop",
+  ],
+  Social: [
+    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1517022812141-23620dbbaca6?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1526976668912-1a811878dd37?w=1200&q=85&auto=format&fit=crop",
+  ],
 };
 
-function getCategoryGradient(category: string): string {
-  return categoryColors[category] ?? "from-primary to-red-800";
+const FALLBACK_IMAGES = [
+  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200&q=85&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=85&auto=format&fit=crop",
+];
+
+function getArticleImage(articleId: number, category: string, storedUrl?: string | null): string {
+  // If a real RSS image was fetched (not a category fallback), keep using it
+  const categoryPool = CATEGORY_IMAGE_POOLS[category];
+  if (categoryPool) {
+    return categoryPool[articleId % categoryPool.length];
+  }
+  if (storedUrl) return storedUrl;
+  return FALLBACK_IMAGES[articleId % FALLBACK_IMAGES.length];
 }
 
 // Polls are only shown for "main" articles — featured or 10-minute reads
@@ -182,28 +229,6 @@ function QuickPoll({ articleId, category }: { articleId: number; category: strin
   );
 }
 
-function ArticleImage({ src, alt }: { src: string; alt: string }) {
-  const [errored, setErrored] = useState(false);
-
-  if (errored) {
-    return (
-      <div className="w-full h-48 sm:h-64 bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
-        <ImageOff className="w-8 h-8 opacity-40" />
-        <span className="text-xs opacity-50">Image unavailable</span>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={src}
-      alt={alt}
-      className="w-full h-48 sm:h-64 object-cover"
-      onError={() => setErrored(true)}
-    />
-  );
-}
-
 export function ArticlePage() {
   const params = useParams();
   const id = Number(params.id);
@@ -258,7 +283,7 @@ export function ArticlePage() {
   const liked = reactions?.userReaction === "like";
   const disliked = reactions?.userReaction === "dislike";
 
-  const catGradient = article ? getCategoryGradient(article.category) : "from-primary to-red-800";
+  const heroImage = article ? getArticleImage(article.id, article.category, article.imageUrl) : "";
   const showPoll = article ? isMainArticle(article) : false;
 
   if (isLoading) {
@@ -284,15 +309,17 @@ export function ArticlePage() {
 
   return (
     <article className="pb-24 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {/* Coloured hero header */}
-      <div className={`bg-gradient-to-br ${catGradient} px-5 sm:px-8 pt-6 pb-8 relative overflow-hidden`}>
-        <div
-          className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{
-            backgroundImage: "radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
+      {/* Hero with image background */}
+      <div
+        className="relative px-5 sm:px-8 pt-6 pb-10 overflow-hidden min-h-[280px] flex flex-col justify-end"
+        style={heroImage ? {
+          backgroundImage: `url(${heroImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center top",
+        } : {}}
+      >
+        {/* Dark gradient overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black/85 pointer-events-none" />
 
         {/* Back + actions */}
         <div className="flex items-center justify-between mb-6 relative">
@@ -351,13 +378,6 @@ export function ArticlePage() {
           })}
         </p>
       </div>
-
-      {/* Hero image */}
-      {article.imageUrl && (
-        <div className="w-full overflow-hidden shadow-md">
-          <ArticleImage src={article.imageUrl} alt={article.headline} />
-        </div>
-      )}
 
       {/* Body */}
       <div className="px-5 sm:px-8 pt-6 space-y-6">
