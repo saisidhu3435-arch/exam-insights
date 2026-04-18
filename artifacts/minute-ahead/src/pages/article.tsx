@@ -19,6 +19,7 @@ import {
   Lightbulb,
   Sparkles,
   Vote,
+  ImageOff,
 } from "lucide-react";
 import { useSessionId } from "@/hooks/use-session";
 import { useBookmarks } from "@/hooks/use-bookmarks";
@@ -37,36 +38,43 @@ function extractKeyFacts(text: string): string[] {
 }
 
 const categoryColors: Record<string, string> = {
-  Politics:              "from-blue-600 to-blue-800",
-  Economy:               "from-emerald-600 to-teal-700",
-  International:         "from-indigo-600 to-purple-700",
+  Politics:                  "from-blue-600 to-blue-800",
+  Economy:                   "from-emerald-600 to-teal-700",
+  International:             "from-indigo-600 to-purple-700",
   "International Relations": "from-indigo-600 to-purple-700",
-  Science:               "from-cyan-500 to-blue-600",
-  "Science & Technology":"from-cyan-500 to-blue-600",
-  Technology:            "from-violet-600 to-purple-700",
-  Environment:           "from-green-600 to-lime-700",
-  Law:                   "from-red-700 to-rose-800",
-  Social:                "from-orange-500 to-amber-600",
-  "National Security":   "from-slate-700 to-slate-900",
-  Security:              "from-slate-700 to-slate-900",
-  Defense:               "from-slate-600 to-gray-800",
+  Science:                   "from-cyan-500 to-blue-600",
+  "Science & Technology":    "from-cyan-500 to-blue-600",
+  Technology:                "from-violet-600 to-purple-700",
+  Environment:               "from-green-600 to-lime-700",
+  Law:                       "from-red-700 to-rose-800",
+  Social:                    "from-orange-500 to-amber-600",
+  "National Security":       "from-slate-700 to-slate-900",
+  Security:                  "from-slate-700 to-slate-900",
+  Defense:                   "from-slate-600 to-gray-800",
 };
 
 function getCategoryGradient(category: string): string {
   return categoryColors[category] ?? "from-primary to-red-800";
 }
 
+// Polls are only shown for "main" articles — featured or 10-minute reads
+const MAIN_CATEGORIES = ["Law", "Economy", "Politics", "International Relations", "National Security"];
+
+function isMainArticle(article: { isFeatured: boolean; readingTime: string; category: string }): boolean {
+  return article.isFeatured || article.readingTime === "10min" || MAIN_CATEGORIES.includes(article.category);
+}
+
 // Scenario-based poll prompts per category
 const SCENARIO_POLLS: Record<string, { prompt: string; options: string[] }> = {
-  Law:       { prompt: "If you were the judge, what would your decision be?", options: ["Rule in favour of the petitioner", "Dismiss the petition", "Refer it to a larger bench"] },
-  Politics:  { prompt: "If you were the lawmaker, what would you do?", options: ["Pass the bill as proposed", "Amend before passing", "Reject and start fresh"] },
-  Economy:   { prompt: "If you were the Finance Minister, what's your call?", options: ["Raise interest rates", "Cut taxes to boost growth", "Stay the course, no change"] },
-  Environment: { prompt: "As a policymaker, what's your priority?", options: ["Strict penalties for violators", "Incentivise green alternatives", "International cooperation first"] },
+  Law:                   { prompt: "If you were the judge, what would your decision be?", options: ["Rule in favour of the petitioner", "Dismiss the petition", "Refer it to a larger bench"] },
+  Politics:              { prompt: "If you were the lawmaker, what would you do?", options: ["Pass the bill as proposed", "Amend before passing", "Reject and start fresh"] },
+  Economy:               { prompt: "If you were the Finance Minister, what's your call?", options: ["Raise interest rates", "Cut taxes to boost growth", "Stay the course, no change"] },
+  Environment:           { prompt: "As a policymaker, what's your priority?", options: ["Strict penalties for violators", "Incentivise green alternatives", "International cooperation first"] },
   "International Relations": { prompt: "If you were the Foreign Minister, what's the move?", options: ["Diplomatic dialogue", "Impose sanctions", "Strengthen bilateral ties"] },
-  "National Security": { prompt: "As the security chief, what would you order?", options: ["Increase border patrols", "Engage in intelligence sharing", "Strengthen domestic surveillance"] },
-  "Science & Technology": { prompt: "As an ethics board member, how do you vote?", options: ["Approve — innovation matters", "Approve with strict oversight", "Reject — too risky"] },
-  Social:    { prompt: "If you could set the policy, what would you choose?", options: ["More government-led welfare", "Empower community initiatives", "Public-private partnership"] },
-  default:   { prompt: "What's your take on this issue?", options: ["Strong action needed now", "Wait and watch carefully", "More data is required"] },
+  "National Security":   { prompt: "As the security chief, what would you order?", options: ["Increase border patrols", "Engage in intelligence sharing", "Strengthen domestic surveillance"] },
+  "Science & Technology":{ prompt: "As an ethics board member, how do you vote?", options: ["Approve — innovation matters", "Approve with strict oversight", "Reject — too risky"] },
+  Social:                { prompt: "If you could set the policy, what would you choose?", options: ["More government-led welfare", "Empower community initiatives", "Public-private partnership"] },
+  default:               { prompt: "What's your take on this issue?", options: ["Strong action needed now", "Wait and watch carefully", "More data is required"] },
 };
 
 function getPoll(category: string) {
@@ -85,7 +93,6 @@ function QuickPoll({ articleId, category }: { articleId: number; category: strin
         return parsed.votes as number[];
       }
     } catch {}
-    // Seed with realistic-looking initial data
     return poll.options.map(() => Math.floor(Math.random() * 40 + 10));
   });
   const [userVote, setUserVote] = useState<number | null>(() => {
@@ -149,12 +156,9 @@ function QuickPoll({ articleId, category }: { articleId: number; category: strin
                   <span className={`text-sm font-extrabold shrink-0 ${isChosen ? "text-primary" : "text-muted-foreground"}`}>{pct}%</span>
                 )}
               </div>
-              {/* Progress bar background */}
-              <div
-                className={`absolute inset-0 rounded-xl border transition-all duration-500 ${
-                  isChosen ? "border-primary/40 bg-primary/10" : "border-border bg-secondary/60"
-                }`}
-              />
+              <div className={`absolute inset-0 rounded-xl border transition-all duration-500 ${
+                isChosen ? "border-primary/40 bg-primary/10" : "border-border bg-secondary/60"
+              }`} />
               {hasVoted && (
                 <div
                   className={`absolute inset-y-0 left-0 rounded-xl transition-all duration-700 ease-out ${
@@ -175,6 +179,28 @@ function QuickPoll({ articleId, category }: { articleId: number; category: strin
         <p className="text-xs text-muted-foreground text-center font-medium">Tap to vote · see how others think</p>
       )}
     </div>
+  );
+}
+
+function ArticleImage({ src, alt }: { src: string; alt: string }) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return (
+      <div className="w-full h-48 sm:h-64 bg-muted flex flex-col items-center justify-center text-muted-foreground gap-2">
+        <ImageOff className="w-8 h-8 opacity-40" />
+        <span className="text-xs opacity-50">Image unavailable</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-full h-48 sm:h-64 object-cover"
+      onError={() => setErrored(true)}
+    />
   );
 }
 
@@ -233,6 +259,7 @@ export function ArticlePage() {
   const disliked = reactions?.userReaction === "dislike";
 
   const catGradient = article ? getCategoryGradient(article.category) : "from-primary to-red-800";
+  const showPoll = article ? isMainArticle(article) : false;
 
   if (isLoading) {
     return (
@@ -259,8 +286,12 @@ export function ArticlePage() {
     <article className="pb-24 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {/* Coloured hero header */}
       <div className={`bg-gradient-to-br ${catGradient} px-5 sm:px-8 pt-6 pb-8 relative overflow-hidden`}>
-        <div className="absolute inset-0 opacity-10 pointer-events-none"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage: "radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
         />
 
         {/* Back + actions */}
@@ -321,6 +352,13 @@ export function ArticlePage() {
         </p>
       </div>
 
+      {/* Hero image */}
+      {article.imageUrl && (
+        <div className="w-full overflow-hidden shadow-md">
+          <ArticleImage src={article.imageUrl} alt={article.headline} />
+        </div>
+      )}
+
       {/* Body */}
       <div className="px-5 sm:px-8 pt-6 space-y-6">
         {/* Summary lead */}
@@ -346,8 +384,7 @@ export function ArticlePage() {
                 <p className="text-muted-foreground font-medium text-sm leading-relaxed">{article.whyItMatters}</p>
               </div>
             )}
-            <QuickPoll articleId={id} category={article.category} />
-            <AskAI articleId={id} />
+            {showPoll && <QuickPoll articleId={id} category={article.category} />}
           </>
         )}
 
@@ -403,7 +440,7 @@ export function ArticlePage() {
               </div>
             )}
 
-            <QuickPoll articleId={id} category={article.category} />
+            {showPoll && <QuickPoll articleId={id} category={article.category} />}
             <AskAI articleId={id} />
           </>
         )}
@@ -422,7 +459,7 @@ export function ArticlePage() {
                 <p className="text-base font-medium leading-relaxed text-foreground/90">"{article.whyItMatters}"</p>
               </div>
             )}
-            <QuickPoll articleId={id} category={article.category} />
+            {showPoll && <QuickPoll articleId={id} category={article.category} />}
             <AskAI articleId={id} />
           </>
         )}

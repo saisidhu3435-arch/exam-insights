@@ -267,6 +267,9 @@ components:
         examRelevance:
           type: string
           description: Optional CLAT/AILET exam relevance note
+        imageUrl:
+          type: string
+          description: Hero image URL for the article
       required:
         - id
         - headline

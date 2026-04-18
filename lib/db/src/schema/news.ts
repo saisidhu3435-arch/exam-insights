@@ -20,6 +20,7 @@ export const newsArticlesTable = pgTable("news_articles", {
   isFeatured: boolean("is_featured").notNull().default(false),
   whyItMatters: text("why_it_matters"),
   examRelevance: text("exam_relevance"),
+  imageUrl: text("image_url"),
 });
 
 export const reactionsTable = pgTable("reactions", {

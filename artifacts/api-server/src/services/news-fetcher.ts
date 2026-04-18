@@ -4,15 +4,39 @@ import { newsArticlesTable } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 
-const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_" });
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  attributeNamePrefix: "@_",
+  isArray: (tagName) => ["item"].includes(tagName),
+});
 
-// India-specific news RSS feeds from Google News (government, policy, law, economy)
+// Trusted Indian news sources
 const RSS_FEEDS = [
+  "https://www.thehindu.com/news/national/feeder/default.rss",
+  "https://www.thehindu.com/news/international/feeder/default.rss",
+  "https://feeds.feedburner.com/ndtvnews-india-news",
+  "https://indianexpress.com/feed/",
+  "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
   "https://news.google.com/rss/search?q=india+supreme+court+constitution+law&hl=en-IN&gl=IN&ceid=IN:en",
   "https://news.google.com/rss/search?q=india+parliament+government+policy+budget&hl=en-IN&gl=IN&ceid=IN:en",
   "https://news.google.com/rss/search?q=india+economy+RBI+international+relations&hl=en-IN&gl=IN&ceid=IN:en",
-  "https://news.google.com/rss/search?q=india+environment+science+technology+social&hl=en-IN&gl=IN&ceid=IN:en",
 ];
+
+// Category → reliable Unsplash photo ID for hero images
+const CATEGORY_IMAGES: Record<string, string> = {
+  Law:                   "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=800&q=80&auto=format&fit=crop",
+  Economy:               "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80&auto=format&fit=crop",
+  Politics:              "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=800&q=80&auto=format&fit=crop",
+  "International Relations": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80&auto=format&fit=crop",
+  Environment:           "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=800&q=80&auto=format&fit=crop",
+  "Science & Technology":"https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&q=80&auto=format&fit=crop",
+  "National Security":   "https://images.unsplash.com/photo-1547782793-e1f88a4bc2c4?w=800&q=80&auto=format&fit=crop",
+  Social:                "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80&auto=format&fit=crop",
+};
+
+function getCategoryImage(category: string): string {
+  return CATEGORY_IMAGES[category] ?? "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800&q=80&auto=format&fit=crop";
+}
 
 interface RssItem {
   title: string;
@@ -20,6 +44,25 @@ interface RssItem {
   pubDate: string;
   description?: string;
   source?: string;
+  imageUrl?: string;
+}
+
+function extractImageFromItem(item: Record<string, unknown>): string | undefined {
+  // Try <media:content url="...">
+  const media = item["media:content"] as Record<string, unknown> | undefined;
+  if (media?.["@_url"]) return String(media["@_url"]);
+
+  // Try <enclosure url="..." type="image/...">
+  const enc = item["enclosure"] as Record<string, unknown> | undefined;
+  if (enc?.["@_url"] && String(enc["@_type"] ?? "").startsWith("image")) {
+    return String(enc["@_url"]);
+  }
+
+  // Try <media:thumbnail url="...">
+  const thumb = item["media:thumbnail"] as Record<string, unknown> | undefined;
+  if (thumb?.["@_url"]) return String(thumb["@_url"]);
+
+  return undefined;
 }
 
 async function fetchRssFeed(url: string): Promise<RssItem[]> {
@@ -38,14 +81,16 @@ async function fetchRssFeed(url: string): Promise<RssItem[]> {
       link: String(item.link ?? ""),
       pubDate: String(item.pubDate ?? new Date().toISOString()),
       description: String(item.description ?? "").replace(/<[^>]*>/g, "").trim(),
-      source: typeof item.source === "object" ? String((item.source as Record<string, unknown>)["#text"] ?? "") : String(item.source ?? ""),
+      source: typeof item.source === "object"
+        ? String((item.source as Record<string, unknown>)["#text"] ?? "")
+        : String(item.source ?? ""),
+      imageUrl: extractImageFromItem(item),
     }));
   } catch {
     return [];
   }
 }
 
-// Canonical category names — must match the welcome flow topic values exactly
 const CATEGORIES = [
   "Law",
   "Economy",
@@ -77,11 +122,12 @@ async function enrichWithAI(item: RssItem): Promise<{
   examRelevance: string;
   category: string;
   readingTime: "2min" | "5min" | "10min";
+  imageUrl: string;
 } | null> {
   try {
     const category = determineCategory(item.title, item.description ?? "");
 
-    const prompt = `You write for "Minute Ahead" — a news app for Indian students (16–22 years old) preparing for CLAT, AILET, and UPSC.
+    const prompt = `You write for "Minute Ahead" — a news app for Indian students (16-22 years old) preparing for CLAT, AILET, and UPSC.
 
 NEWS:
 HEADLINE: ${item.title}
@@ -104,9 +150,9 @@ STRICT WRITING RULES — follow every single one:
 
 Generate a JSON response with EXACTLY these fields:
 {
-  "headline": "Punchy, curiosity-driving headline. Factually accurate. Max 90 chars. No colons if possible.",
+  "headline": "Punchy, curiosity-driving headline. Factually accurate. Max 90 chars.",
   "summary": "One conversational sentence — what happened in plain English. Max 120 chars.",
-  "fullExplanation": "3-4 paragraphs following ALL the writing rules above. Start with a hook. Use \\n\\n between paragraphs. No hyphens. No bullet lists.",
+  "fullExplanation": "3-4 paragraphs following ALL the writing rules above. Start with a hook. Use \\n\\n between paragraphs. No hyphens.",
   "whyItMatters": "One plain sentence: what this actually changes for real people in India. Max 150 chars. No jargon.",
   "examRelevance": "Which exact constitutional articles, landmark cases, or government schemes link to this? Be specific. Max 200 chars.",
   "category": "Pick ONE from: Law, Economy, Politics, International Relations, Environment, Science & Technology, National Security, Social",
@@ -127,14 +173,17 @@ IMPORTANT: Return ONLY valid JSON. No markdown. No explanation outside the JSON.
     const jsonText = block.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
     const data = JSON.parse(jsonText);
 
-    // Validate category — must be one of the canonical names
     const rawCategory = String(data.category ?? "").trim();
     const validCategory = (CATEGORIES as readonly string[]).includes(rawCategory) ? rawCategory : category;
 
-    // Validate readingTime
     const rawTime = String(data.readingTime ?? "").trim();
     const validReadingTime: "2min" | "5min" | "10min" =
       rawTime === "5min" ? "5min" : rawTime === "10min" ? "10min" : "2min";
+
+    // Use RSS image if available, else category fallback
+    const imageUrl = item.imageUrl && item.imageUrl.startsWith("http")
+      ? item.imageUrl
+      : getCategoryImage(validCategory);
 
     return {
       headline: String(data.headline ?? item.title).slice(0, 255),
@@ -144,6 +193,7 @@ IMPORTANT: Return ONLY valid JSON. No markdown. No explanation outside the JSON.
       examRelevance: String(data.examRelevance ?? "").slice(0, 500),
       category: validCategory,
       readingTime: validReadingTime,
+      imageUrl,
     };
   } catch {
     return null;
@@ -180,7 +230,6 @@ export async function refreshNews(maxNew = 8): Promise<{ added: number; skipped:
       const enriched = await enrichWithAI(item);
       if (!enriched) { skipped++; continue; }
 
-      // Check again (by enriched headline)
       const enrichedKey = enriched.headline.toLowerCase().trim();
       if (existingHeadlines.has(enrichedKey)) { skipped++; continue; }
 
@@ -193,6 +242,7 @@ export async function refreshNews(maxNew = 8): Promise<{ added: number; skipped:
           examRelevance: enriched.examRelevance,
           category: enriched.category,
           readingTime: enriched.readingTime,
+          imageUrl: enriched.imageUrl,
           publishedAt: new Date(item.pubDate),
           isFeatured: false,
           likes: 0,
@@ -204,7 +254,6 @@ export async function refreshNews(maxNew = 8): Promise<{ added: number; skipped:
         skipped++;
       }
 
-      // Small delay between AI calls
       await new Promise((r) => setTimeout(r, 300));
     }
   }

@@ -1,14 +1,36 @@
 import { Link } from "wouter";
-import { Clock, ThumbsUp, ThumbsDown, ArrowRight, Sparkles, GraduationCap, Zap } from "lucide-react";
+import { Clock, ThumbsUp, ThumbsDown, ArrowRight, Sparkles, GraduationCap, Zap, ImageOff } from "lucide-react";
 import type { NewsArticle } from "@workspace/api-client-react";
 import { useCreateReaction, useGetReactions, getGetReactionsQueryKey } from "@workspace/api-client-react";
 import { Badge } from "./ui/badge";
 import { useSessionId } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface Props {
   article: NewsArticle;
   mode?: "stay-updated" | "exams" | "general-knowledge";
+}
+
+function Thumbnail({ src, alt }: { src: string; alt: string }) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return (
+      <div className="w-24 h-20 sm:w-28 sm:h-24 shrink-0 rounded-xl bg-muted flex items-center justify-center">
+        <ImageOff className="w-5 h-5 text-muted-foreground/40" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className="w-24 h-20 sm:w-28 sm:h-24 shrink-0 rounded-xl object-cover"
+      onError={() => setErrored(true)}
+    />
+  );
 }
 
 export function ArticleCard({ article, mode = "stay-updated" }: Props) {
@@ -37,7 +59,6 @@ export function ArticleCard({ article, mode = "stay-updated" }: Props) {
   const liked = reactions?.userReaction === "like";
   const disliked = reactions?.userReaction === "dislike";
 
-  // Mode-specific accent
   const modeBadge = {
     "stay-updated": null,
     exams: (
@@ -57,7 +78,9 @@ export function ArticleCard({ article, mode = "stay-updated" }: Props) {
   return (
     <Link href={`/article/${article.id}`} className="group block no-underline focus:outline-none">
       <article className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 active:scale-[0.99] cursor-pointer">
-        <div className="flex items-center gap-3 px-5 pt-5 mb-3 flex-wrap">
+
+        {/* Top row: category + meta + mode badge */}
+        <div className="flex items-center gap-3 px-5 pt-4 mb-3 flex-wrap">
           <Badge
             variant="secondary"
             className="bg-primary/10 text-primary hover:bg-primary/20 border-none font-semibold rounded-full px-3 text-xs"
@@ -77,21 +100,25 @@ export function ArticleCard({ article, mode = "stay-updated" }: Props) {
           )}
         </div>
 
-        <div className="px-5 mb-3">
-          <h3 className="text-lg sm:text-xl font-extrabold leading-snug tracking-tight group-hover:text-primary transition-colors">
-            {article.headline}
-          </h3>
+        {/* Content row: text + thumbnail */}
+        <div className="flex items-start gap-3 px-5 mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-lg sm:text-xl font-extrabold leading-snug tracking-tight group-hover:text-primary transition-colors mb-2">
+              {article.headline}
+            </h3>
+            <p className="text-muted-foreground leading-relaxed text-sm sm:text-[15px] line-clamp-2">
+              {article.summary}
+            </p>
+          </div>
+
+          {article.imageUrl && (
+            <Thumbnail src={article.imageUrl} alt={article.headline} />
+          )}
         </div>
 
-        <div className="px-5 mb-4">
-          <p className="text-muted-foreground leading-relaxed text-sm sm:text-[15px] line-clamp-2">
-            {article.summary}
-          </p>
-        </div>
-
-        {/* Mode-specific preview hint */}
+        {/* Mode-specific hint */}
         {mode === "exams" && article.examRelevance && (
-          <div className="mx-5 mb-4 px-3 py-2 bg-amber-50 border-l-2 border-amber-400 rounded">
+          <div className="mx-5 mb-3 px-3 py-2 bg-amber-50 border-l-2 border-amber-400 rounded">
             <p className="text-xs text-amber-900 font-medium line-clamp-2">
               <span className="font-bold">For your exam: </span>
               {article.examRelevance.split(".")[0]}.
@@ -99,13 +126,14 @@ export function ArticleCard({ article, mode = "stay-updated" }: Props) {
           </div>
         )}
         {mode === "general-knowledge" && article.whyItMatters && (
-          <div className="mx-5 mb-4 px-3 py-2 bg-purple-50 border-l-2 border-purple-400 rounded">
+          <div className="mx-5 mb-3 px-3 py-2 bg-purple-50 border-l-2 border-purple-400 rounded">
             <p className="text-xs text-purple-900 font-medium line-clamp-2 italic">
               "{article.whyItMatters}"
             </p>
           </div>
         )}
 
+        {/* Footer */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-secondary/30">
           <div className="flex items-center gap-2">
             <button
