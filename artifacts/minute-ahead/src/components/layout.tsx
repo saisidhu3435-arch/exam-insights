@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Compass, BookOpen, User } from "lucide-react";
 import { useStreak } from "@/hooks/use-streak";
 import { useUser } from "@clerk/react";
+import logoImage from "@assets/min_logo_1776659115454.jpeg";
 
 function AnimatedFireStreak({ count }: { count: number }) {
   if (count === 0) return null;
@@ -17,13 +18,7 @@ function AnimatedFireStreak({ count }: { count: number }) {
 
 function Logo() {
   return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      {/* Bold square background */}
-      <rect width="30" height="30" rx="6" fill="hsl(var(--primary))" />
-      {/* Forward arrow representing "Ahead" */}
-      <line x1="7" y1="15" x2="21" y2="15" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-      <polyline points="15,9 22,15 15,21" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <img src={logoImage} alt="" className="w-8 h-8 rounded-sm object-cover" aria-hidden="true" />
   );
 }
 
@@ -48,7 +43,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-auto">
             <Logo />
             <span className="font-black text-lg leading-none tracking-tight text-foreground">
-              Minute<span className="text-primary"> Ahead</span>
+              minute<span className="text-primary"> ahead</span>
             </span>
           </Link>
 
