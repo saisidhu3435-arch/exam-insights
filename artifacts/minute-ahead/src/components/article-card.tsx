@@ -7,6 +7,7 @@ import { useSessionId } from "@/hooks/use-session";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadArticles } from "@/hooks/use-read-articles";
 import { useState } from "react";
+import { getArticleImage } from "@/lib/article-image";
 
 interface Props {
   article: NewsArticle;
@@ -22,8 +23,12 @@ const SOURCE_ICONS: Record<string, string> = {
   "Google News India": "🔍",
 };
 
-function Thumbnail({ src, alt }: { src: string; alt: string }) {
+function Thumbnail({ src, fallbackSrc, alt }: { src: string; fallbackSrc?: string; alt: string }) {
+  const [triedFallback, setTriedFallback] = useState(false);
   const [errored, setErrored] = useState(false);
+
+  const activeSrc = triedFallback && fallbackSrc ? fallbackSrc : src;
+
   if (errored) {
     return (
       <div className="w-24 h-20 sm:w-28 sm:h-24 shrink-0 rounded-xl bg-muted flex items-center justify-center">
@@ -33,10 +38,16 @@ function Thumbnail({ src, alt }: { src: string; alt: string }) {
   }
   return (
     <img
-      src={src}
+      src={activeSrc}
       alt={alt}
       className="w-24 h-20 sm:w-28 sm:h-24 shrink-0 rounded-xl object-cover"
-      onError={() => setErrored(true)}
+      onError={() => {
+        if (!triedFallback && fallbackSrc && fallbackSrc !== src) {
+          setTriedFallback(true);
+        } else {
+          setErrored(true);
+        }
+      }}
     />
   );
 }
@@ -118,9 +129,11 @@ export function ArticleCard({ article, mode = "stay-updated" }: Props) {
               {article.summary}
             </p>
           </div>
-          {article.imageUrl && (
-            <Thumbnail src={article.imageUrl} alt={article.headline} />
-          )}
+          {(() => {
+            const primary = getArticleImage(article.id, article.category, article.headline, article.imageUrl);
+            const pexels  = getArticleImage(article.id, article.category, article.headline, null);
+            return <Thumbnail src={primary} fallbackSrc={pexels} alt={article.headline} />;
+          })()}
         </div>
 
         {/* Mode-specific hints */}

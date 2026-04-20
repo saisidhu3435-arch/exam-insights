@@ -26,6 +26,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
 import { AskAI } from "@/components/ask-ai";
+import { getArticleImage } from "@/lib/article-image";
 
 const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 function formatLocalDate(iso: string) {
@@ -41,115 +42,6 @@ function extractKeyFacts(text: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s.length > 40 && s.length < 220)
     .slice(0, 5);
-}
-
-// Keyword → curated Unsplash photo IDs (matched against headline words)
-const KEYWORD_IMAGES: Array<{ keywords: string[]; urls: string[] }> = [
-  { keywords: ["supreme court", "high court", "tribunal", "court"], urls: [
-    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["constitution", "fundamental rights", "article 370", "article 21"], urls: [
-    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["parliament", "lok sabha", "rajya sabha", "legislature", "bill passed"], urls: [
-    "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["election", "vote", "voting", "poll results", "ballot"], urls: [
-    "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1575986767340-5d17ae767ab0?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["rbi", "reserve bank", "interest rate", "repo rate", "monetary policy", "inflation", "rupee"], urls: [
-    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["budget", "gdp", "economic", "trade", "import", "export", "tariff"], urls: [
-    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1607863680198-23d4b2565df0?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["pakistan", "indus", "water treaty", "ceasefire", "border pakistan"], urls: [
-    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["china", "chinese", "beijing", "taiwan", "south china sea"], urls: [
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["usa", "america", "washington", "trump", "biden", "white house"], urls: [
-    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["russia", "ukraine", "war", "conflict", "missile", "nato"], urls: [
-    "https://images.unsplash.com/photo-1580502304784-8985b7eb7260?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1547782793-e1f88a4bc2c4?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["army", "military", "soldier", "defence", "border", "surgical strike", "security forces"], urls: [
-    "https://images.unsplash.com/photo-1579762593175-20226054cad0?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1521791055366-0d553872952f?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["nuclear", "missile", "weapons", "agni", "brahmos"], urls: [
-    "https://images.unsplash.com/photo-1473321679-1eae777cc2f7?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["isro", "space", "rocket", "satellite", "chandrayaan", "gaganyaan", "mars"], urls: [
-    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["ai ", "artificial intelligence", "chatgpt", "machine learning", "robot"], urls: [
-    "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["cyber", "hack", "data breach", "digital", "internet", "tech"], urls: [
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["climate", "global warming", "carbon", "emission", "net zero", "renewable"], urls: [
-    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["forest", "wildlife", "tiger", "deforestation", "biodiversity"], urls: [
-    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["flood", "drought", "earthquake", "cyclone", "disaster", "rainfall"], urls: [
-    "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["hospital", "health", "vaccine", "disease", "medicine", "doctor", "drug"], urls: [
-    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["education", "school", "university", "student", "exam", "jee", "neet"], urls: [
-    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["woman", "gender", "rape", "violence against", "women rights", "maternity"], urls: [
-    "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1526976668912-1a811878dd37?w=1200&q=85&auto=format&fit=crop",
-  ]},
-  { keywords: ["united nations", "un ", "imf", "world bank", "g20", "g7", "global"], urls: [
-    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=85&auto=format&fit=crop",
-  ]},
-];
-
-const FALLBACK_IMAGES = [
-  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1495020689067-958852a7765e?w=1200&q=85&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=85&auto=format&fit=crop",
-];
-
-function getArticleImage(articleId: number, _category: string, headline: string, _storedUrl?: string | null): string {
-  const h = (headline ?? "").toLowerCase();
-  for (const entry of KEYWORD_IMAGES) {
-    if (entry.keywords.some((kw) => h.includes(kw))) {
-      return entry.urls[articleId % entry.urls.length];
-    }
-  }
-  return FALLBACK_IMAGES[articleId % FALLBACK_IMAGES.length];
 }
 
 // Polls are only shown for "main" articles — featured or 10-minute reads
