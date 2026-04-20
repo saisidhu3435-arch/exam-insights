@@ -1,4 +1,4 @@
-import { useGetPreferences, useGetTodaysUpdates, useSavePreferences } from "@workspace/api-client-react";
+import { useGetPreferences, useGetTodaysUpdates, useSavePreferences, useListNews } from "@workspace/api-client-react";
 import { ArticleCard } from "@/components/article-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
@@ -134,6 +134,12 @@ export function HomePage() {
     { query: { queryKey: ["todays-updates", effectiveGoal, effectiveTimeMode, favTopic] } }
   );
 
+  // Recent backlog (last few days) — used to surface unread when today is exhausted
+  const { data: recentArticles } = useListNews(
+    { limit: 50 },
+    { query: { queryKey: ["recent-articles"] } }
+  );
+
   const topics = useMemo(() => {
     if (!updates) return ["All"];
     const cats = Array.from(new Set(updates.map((a) => a.category)));
@@ -153,6 +159,19 @@ export function HomePage() {
       read:   filteredUpdates.filter((a) => isRead(a.id)),
     };
   }, [filteredUpdates, isRead]);
+
+  // True only when ALL of today's articles (across topics) are read
+  const allTodayCaughtUp = useMemo(() => {
+    if (!updates || updates.length === 0) return false;
+    return updates.every((a) => isRead(a.id));
+  }, [updates, isRead]);
+
+  // When today's feed is exhausted, surface unread articles from earlier in the week
+  const olderUnread = useMemo(() => {
+    if (!recentArticles || !updates) return [];
+    const todaysIds = new Set(updates.map((a) => a.id));
+    return recentArticles.filter((a) => !todaysIds.has(a.id) && !isRead(a.id)).slice(0, 10);
+  }, [recentArticles, updates, isRead]);
 
   const switchMode = (newGoal: PreferencesInputGoal) => {
     if (!sessionId) return;
@@ -297,12 +316,23 @@ export function HomePage() {
                 <div className="flex-1 h-px bg-border" />
               </div>
             )}
-            {read.length > 0 && unread.length === 0 && (
+            {allTodayCaughtUp && unread.length === 0 && read.length > 0 && (
               <div className="text-center py-6 space-y-2">
                 <CheckCircle2 className="w-8 h-8 text-green-500 mx-auto" />
-                <p className="font-bold text-base">You're all caught up! 🎉</p>
-                <p className="text-sm text-muted-foreground">New stories every 2 hours. Check back soon.</p>
+                <p className="font-bold text-base">You're all caught up on today! 🎉</p>
+                <p className="text-sm text-muted-foreground">
+                  {olderUnread.length > 0 ? "Here's what you missed earlier this week:" : "New stories every 2 hours. Check back soon."}
+                </p>
               </div>
+            )}
+
+            {/* Older unread (only when fully caught up across all of today) */}
+            {allTodayCaughtUp && olderUnread.length > 0 && (
+              <>
+                {olderUnread.map((article) => (
+                  <ArticleCard key={`older-${article.id}`} article={article} mode={goal} />
+                ))}
+              </>
             )}
 
             {/* Read articles (dimmed) */}

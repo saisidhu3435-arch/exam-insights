@@ -8,6 +8,8 @@
 
 export * from "./category";
 export * from "./errorResponse";
+export * from "./getMonthlySummaryGoal";
+export * from "./getMonthlySummaryParams";
 export * from "./getPreferencesParams";
 export * from "./getTodaysUpdatesGoal";
 export * from "./getTodaysUpdatesParams";
@@ -15,6 +17,9 @@ export * from "./getTodaysUpdatesTimeMode";
 export * from "./healthStatus";
 export * from "./listNewsParams";
 export * from "./listNewsTimeMode";
+export * from "./monthlySummary";
+export * from "./monthlySummaryQuestionsItem";
+export * from "./monthlySummarySectionsItem";
 export * from "./newsArticle";
 export * from "./newsArticleReadingTime";
 export * from "./preferencesInput";

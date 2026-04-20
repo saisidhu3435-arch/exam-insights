@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { newsArticlesTable, reactionsTable, userPreferencesTable } from "@workspace/db";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte, inArray } from "drizzle-orm";
 import {
   ListNewsQueryParams,
   GetTodaysUpdatesQueryParams,
@@ -42,29 +42,149 @@ router.get("/news/today", async (req, res) => {
     const params = parsed.success ? parsed.data : {};
     const favTopic = (req.query.favTopic as string) ?? null;
 
-    // Reading time controls how many articles to show, NOT which articles to filter
-    const limit = params.goal === "exams" ? 7 : params.timeMode === "2min" ? 3 : params.timeMode === "10min" ? 8 : 5;
+    // Strict: only TODAY's news (UTC). Cap is generous so the user sees the full daily feed.
+    const startOfToday = new Date();
+    startOfToday.setUTCHours(0, 0, 0, 0);
 
-    // Fetch a wide pool of recent articles (no reading_time filter — it was causing near-empty feeds)
-    const allArticles = await db
+    let todays = await db
       .select()
       .from(newsArticlesTable)
-      .orderBy(desc(newsArticlesTable.isFeatured), desc(newsArticlesTable.publishedAt))
-      .limit(40);
+      .where(gte(newsArticlesTable.publishedAt, startOfToday))
+      .orderBy(desc(newsArticlesTable.publishedAt))
+      .limit(50);
 
-    // Boost favTopic articles to the top
-    let articles = allArticles;
-    if (favTopic) {
-      const favNorm = favTopic.toLowerCase();
-      const topicMatches = allArticles.filter((a) => a.category.toLowerCase().includes(favNorm));
-      const rest = allArticles.filter((a) => !a.category.toLowerCase().includes(favNorm));
-      articles = [...topicMatches, ...rest];
+    // Fallback: if today has fewer than 3 stories yet, fall back to last 24 hours.
+    if (todays.length < 3) {
+      const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      todays = await db
+        .select()
+        .from(newsArticlesTable)
+        .where(gte(newsArticlesTable.publishedAt, last24h))
+        .orderBy(desc(newsArticlesTable.publishedAt))
+        .limit(50);
     }
 
-    res.json(articles.slice(0, limit));
+    // Boost favTopic articles to the top (interests are comma-separated)
+    if (favTopic) {
+      const favList = favTopic.toLowerCase().split(",").map((s) => s.trim()).filter(Boolean);
+      const isFav = (cat: string) => favList.some((f) => cat.toLowerCase().includes(f));
+      const topicMatches = todays.filter((a) => isFav(a.category));
+      const rest = todays.filter((a) => !isFav(a.category));
+      todays = [...topicMatches, ...rest];
+    }
+
+    res.json(todays);
   } catch (err) {
     req.log.error({ err }, "Error fetching today's updates");
     res.status(500).json({ error: "internal_error", message: "Failed to fetch today's updates" });
+  }
+});
+
+router.get("/news/monthly-summary", async (req, res) => {
+  try {
+    const goal = String(req.query.goal ?? "stay-updated");
+    const favTopic = String(req.query.favTopic ?? "");
+
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const articles = await db
+      .select()
+      .from(newsArticlesTable)
+      .where(gte(newsArticlesTable.publishedAt, monthAgo))
+      .orderBy(desc(newsArticlesTable.publishedAt))
+      .limit(80);
+
+    const now = new Date();
+    const monthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+
+    if (articles.length === 0) {
+      return res.json({
+        month: monthLabel,
+        intro: "Not enough news yet to build a monthly digest. Check back after you've read more stories.",
+        sections: [],
+        articleCount: 0,
+        ...(goal === "exams" ? { questions: [] } : {}),
+      });
+    }
+
+    // Build a compact corpus for the AI
+    const corpus = articles.map((a, i) =>
+      `[${i + 1}] (${a.category}) ${a.headline} — ${a.summary}`
+    ).join("\n");
+
+    const { anthropic } = await import("@workspace/integrations-anthropic-ai");
+
+    const tonePrompt =
+      goal === "exams"
+        ? "Tone: exam-focused. Each section should highlight the constitutional articles, key facts, schemes, or landmark cases an Indian student preparing for CLAT/AILET/UPSC must remember."
+        : goal === "general-knowledge"
+        ? "Tone: friendly storytelling. Explain the bigger picture and connections like a smart friend would."
+        : "Tone: clear, journalistic, no fluff. Just the news that mattered.";
+
+    const includeQuestions = goal === "exams";
+
+    const prompt = `You are writing the monthly news digest for "Minute Ahead", an app for Indian students.
+
+MONTH: ${monthLabel}
+USER GOAL: ${goal}
+USER INTERESTS: ${favTopic || "(none)"}
+${tonePrompt}
+
+NEWS FROM THE LAST 30 DAYS:
+${corpus}
+
+Generate a JSON response with these EXACT fields:
+{
+  "intro": "2-3 sentence overview of what defined this month. Punchy. Conversational. No filler.",
+  "sections": [
+    {
+      "category": "One of the categories that appeared this month",
+      "headline": "The single biggest story or theme in this category, in <80 chars",
+      "points": ["3 to 5 short bullet points capturing the key developments. Each <140 chars."]
+    }
+  ]${includeQuestions ? `,
+  "questions": [
+    {
+      "question": "Crisp factual question based on the month's news. Like a CLAT/UPSC MCQ.",
+      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "correctIndex": 0,
+      "explanation": "1-2 sentence explanation of why this is correct."
+    }
+  ]` : ""}
+}
+
+RULES:
+- 4 to 6 sections, one per major category that appeared this month.
+- Prioritise the user's interests if listed.
+${includeQuestions ? "- EXACTLY 5 multiple choice questions covering different stories. correctIndex must be 0-3." : ""}
+- No hyphens, no em-dashes, no markdown.
+- Return ONLY valid JSON. No prose around it.`;
+
+    const message = await anthropic.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 4096,
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const block = message.content[0];
+    if (block?.type !== "text") {
+      return res.status(500).json({ error: "ai_error", message: "Could not generate summary" });
+    }
+
+    const jsonText = block.text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    const parsed = JSON.parse(jsonText);
+
+    res.json({
+      month: monthLabel,
+      intro: String(parsed.intro ?? ""),
+      sections: Array.isArray(parsed.sections) ? parsed.sections : [],
+      ...(includeQuestions
+        ? { questions: Array.isArray(parsed.questions) ? parsed.questions.slice(0, 5) : [] }
+        : {}),
+      articleCount: articles.length,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Error generating monthly summary");
+    res.status(500).json({ error: "internal_error", message: "Failed to generate monthly summary" });
   }
 });
 

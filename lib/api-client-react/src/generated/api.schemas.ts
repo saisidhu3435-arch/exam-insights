@@ -134,6 +134,30 @@ export interface PreferencesInput {
   sessionId?: string;
 }
 
+export type MonthlySummarySectionsItem = {
+  category: string;
+  headline: string;
+  points: string[];
+};
+
+export type MonthlySummaryQuestionsItem = {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+};
+
+export interface MonthlySummary {
+  /** Month label like "April 2026" */
+  month: string;
+  /** 2-3 sentence overview of the month */
+  intro: string;
+  sections: MonthlySummarySectionsItem[];
+  /** Only present for exam mode (5 questions) */
+  questions?: MonthlySummaryQuestionsItem[];
+  articleCount: number;
+}
+
 export interface ErrorResponse {
   error: string;
   message: string;
@@ -191,6 +215,26 @@ export type GetTodaysUpdatesGoal =
   (typeof GetTodaysUpdatesGoal)[keyof typeof GetTodaysUpdatesGoal];
 
 export const GetTodaysUpdatesGoal = {
+  "stay-updated": "stay-updated",
+  exams: "exams",
+  "general-knowledge": "general-knowledge",
+} as const;
+
+export type GetMonthlySummaryParams = {
+  /**
+   * User goal mode (changes tone and adds quiz for exams)
+   */
+  goal?: GetMonthlySummaryGoal;
+  /**
+   * Comma-separated list of favourite topics
+   */
+  favTopic?: string;
+};
+
+export type GetMonthlySummaryGoal =
+  (typeof GetMonthlySummaryGoal)[keyof typeof GetMonthlySummaryGoal];
+
+export const GetMonthlySummaryGoal = {
   "stay-updated": "stay-updated",
   exams: "exams",
   "general-knowledge": "general-knowledge",

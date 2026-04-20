@@ -99,6 +99,32 @@ paths:
                 items:
                   $ref: "#/components/schemas/NewsArticle"
 
+  /news/monthly-summary:
+    get:
+      operationId: getMonthlySummary
+      tags: [news]
+      summary: Get a monthly news digest
+      description: Returns an AI-generated digest of the last 30 days of news. For exam mode, also returns a 5-question quiz.
+      parameters:
+        - name: goal
+          in: query
+          schema:
+            type: string
+            enum: [stay-updated, exams, general-knowledge]
+          description: User goal mode (changes tone and adds quiz for exams)
+        - name: favTopic
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of favourite topics
+      responses:
+        "200":
+          description: Monthly digest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MonthlySummary"
+
   /news/categories:
     get:
       operationId: listCategories
@@ -369,6 +395,54 @@ components:
       required:
         - goal
         - timeMode
+
+    MonthlySummary:
+      type: object
+      properties:
+        month:
+          type: string
+          description: Month label like "April 2026"
+        intro:
+          type: string
+          description: 2-3 sentence overview of the month
+        sections:
+          type: array
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              headline:
+                type: string
+              points:
+                type: array
+                items:
+                  type: string
+            required: [category, headline, points]
+        questions:
+          type: array
+          description: Only present for exam mode (5 questions)
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              options:
+                type: array
+                items:
+                  type: string
+              correctIndex:
+                type: integer
+              explanation:
+                type: string
+            required: [question, options, correctIndex, explanation]
+        articleCount:
+          type: integer
+      required:
+        - month
+        - intro
+        - sections
+        - articleCount
 
     ErrorResponse:
       type: object

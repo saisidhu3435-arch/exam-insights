@@ -11,6 +11,7 @@ import { ArticlePage } from "@/pages/article";
 import { BrowsePage } from "@/pages/browse";
 import { ProfilePage } from "@/pages/profile";
 import { WelcomePage } from "@/pages/welcome";
+import { MonthlySummaryPage } from "@/pages/monthly-summary";
 import NotFound from "@/pages/not-found";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -105,6 +106,11 @@ function ClerkProviderWithRoutes() {
             <Route path="/sign-in/*?" component={SignInPage} />
             <Route path="/sign-up/*?" component={SignUpPage} />
             <Route path="/welcome" component={WelcomePage} />
+            <Route path="/monthly-summary">
+              <Layout>
+                <MonthlySummaryPage />
+              </Layout>
+            </Route>
             <Route path="/">
               <Layout>
                 <HomePage />

@@ -19,10 +19,12 @@ import type {
 import type {
   Category,
   ErrorResponse,
+  GetMonthlySummaryParams,
   GetPreferencesParams,
   GetTodaysUpdatesParams,
   HealthStatus,
   ListNewsParams,
+  MonthlySummary,
   NewsArticle,
   PreferencesInput,
   ReactionInput,
@@ -300,6 +302,104 @@ export function useGetTodaysUpdates<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetTodaysUpdatesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns an AI-generated digest of the last 30 days of news. For exam mode, also returns a 5-question quiz.
+ * @summary Get a monthly news digest
+ */
+export const getGetMonthlySummaryUrl = (params?: GetMonthlySummaryParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/news/monthly-summary?${stringifiedParams}`
+    : `/api/news/monthly-summary`;
+};
+
+export const getMonthlySummary = async (
+  params?: GetMonthlySummaryParams,
+  options?: RequestInit,
+): Promise<MonthlySummary> => {
+  return customFetch<MonthlySummary>(getGetMonthlySummaryUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMonthlySummaryQueryKey = (
+  params?: GetMonthlySummaryParams,
+) => {
+  return [`/api/news/monthly-summary`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetMonthlySummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMonthlySummary>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMonthlySummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonthlySummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetMonthlySummaryQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getMonthlySummary>>
+  > = ({ signal }) => getMonthlySummary(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMonthlySummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMonthlySummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMonthlySummary>>
+>;
+export type GetMonthlySummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a monthly news digest
+ */
+
+export function useGetMonthlySummary<
+  TData = Awaited<ReturnType<typeof getMonthlySummary>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetMonthlySummaryParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getMonthlySummary>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMonthlySummaryQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

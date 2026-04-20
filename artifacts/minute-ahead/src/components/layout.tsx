@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { Compass, BookOpen, User } from "lucide-react";
 import { useStreak } from "@/hooks/use-streak";
 import { useUser } from "@clerk/react";
+import { MonthlySummaryPopup } from "@/components/monthly-summary-popup";
 
 function AnimatedFireStreak({ count }: { count: number }) {
   if (count === 0) return null;
@@ -12,16 +13,6 @@ function AnimatedFireStreak({ count }: { count: number }) {
       </span>
       <span className="text-xs font-extrabold text-orange-600">{count}</span>
     </div>
-  );
-}
-
-function Logo() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect width="30" height="30" rx="6" fill="hsl(var(--primary))" />
-      <line x1="7" y1="15" x2="21" y2="15" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-      <polyline points="15,9 22,15 15,21" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 
@@ -44,8 +35,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
           {/* Logo + brand */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-auto">
-            <Logo />
-            <span className="font-black text-lg leading-none tracking-tight text-foreground">
+            <span className="font-black text-lg leading-none tracking-tight">
               <span className="text-foreground">Minute</span> <span className="text-primary">Ahead</span>
             </span>
           </Link>
@@ -96,6 +86,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 w-full">
         <div className="max-w-3xl mx-auto w-full">{children}</div>
       </main>
+
+      <MonthlySummaryPopup />
     </div>
   );
 }

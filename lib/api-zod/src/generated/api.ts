@@ -57,6 +57,15 @@ export const ListNewsResponseItem = zod.object({
     .string()
     .optional()
     .describe("Optional CLAT\/AILET exam relevance note"),
+  imageUrl: zod.string().optional().describe("Hero image URL for the article"),
+  sourceName: zod
+    .string()
+    .optional()
+    .describe('Display name of the news source (e.g. \"The Hindu\")'),
+  sourceUrl: zod
+    .string()
+    .optional()
+    .describe("URL of the original news source"),
 });
 export const ListNewsResponse = zod.array(ListNewsResponseItem);
 
@@ -103,8 +112,56 @@ export const GetTodaysUpdatesResponseItem = zod.object({
     .string()
     .optional()
     .describe("Optional CLAT\/AILET exam relevance note"),
+  imageUrl: zod.string().optional().describe("Hero image URL for the article"),
+  sourceName: zod
+    .string()
+    .optional()
+    .describe('Display name of the news source (e.g. \"The Hindu\")'),
+  sourceUrl: zod
+    .string()
+    .optional()
+    .describe("URL of the original news source"),
 });
 export const GetTodaysUpdatesResponse = zod.array(GetTodaysUpdatesResponseItem);
+
+/**
+ * Returns an AI-generated digest of the last 30 days of news. For exam mode, also returns a 5-question quiz.
+ * @summary Get a monthly news digest
+ */
+export const GetMonthlySummaryQueryParams = zod.object({
+  goal: zod
+    .enum(["stay-updated", "exams", "general-knowledge"])
+    .optional()
+    .describe("User goal mode (changes tone and adds quiz for exams)"),
+  favTopic: zod.coerce
+    .string()
+    .optional()
+    .describe("Comma-separated list of favourite topics"),
+});
+
+export const GetMonthlySummaryResponse = zod.object({
+  month: zod.string().describe('Month label like \"April 2026\"'),
+  intro: zod.string().describe("2-3 sentence overview of the month"),
+  sections: zod.array(
+    zod.object({
+      category: zod.string(),
+      headline: zod.string(),
+      points: zod.array(zod.string()),
+    }),
+  ),
+  questions: zod
+    .array(
+      zod.object({
+        question: zod.string(),
+        options: zod.array(zod.string()),
+        correctIndex: zod.number(),
+        explanation: zod.string(),
+      }),
+    )
+    .optional()
+    .describe("Only present for exam mode (5 questions)"),
+  articleCount: zod.number(),
+});
 
 /**
  * Returns all available news categories with article counts
@@ -149,6 +206,15 @@ export const GetNewsArticleResponse = zod.object({
     .string()
     .optional()
     .describe("Optional CLAT\/AILET exam relevance note"),
+  imageUrl: zod.string().optional().describe("Hero image URL for the article"),
+  sourceName: zod
+    .string()
+    .optional()
+    .describe('Display name of the news source (e.g. \"The Hindu\")'),
+  sourceUrl: zod
+    .string()
+    .optional()
+    .describe("URL of the original news source"),
 });
 
 /**

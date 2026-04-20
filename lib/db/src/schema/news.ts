@@ -27,7 +27,7 @@ export const newsArticlesTable = pgTable("news_articles", {
 
 export const reactionsTable = pgTable("reactions", {
   id: serial("id").primaryKey(),
-  articleId: integer("article_id").notNull().references(() => newsArticlesTable.id),
+  articleId: integer("article_id").notNull().references(() => newsArticlesTable.id, { onDelete: "cascade" }),
   sessionId: text("session_id").notNull(),
   reaction: reactionTypeEnum("reaction").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
