@@ -299,7 +299,26 @@ function StepTopic({
   onSelect: (v: string) => void;
   onBack: () => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string[]>([]);
+  const REQUIRED = 3;
+
+  function toggle(value: string) {
+    setSelected((prev) =>
+      prev.includes(value)
+        ? prev.filter((v) => v !== value)
+        : prev.length < REQUIRED
+        ? [...prev, value]
+        : prev
+    );
+  }
+
+  function handleConfirm() {
+    if (selected.length === REQUIRED && !saving) {
+      onSelect(selected[0]);
+    }
+  }
+
+  const canConfirm = selected.length === REQUIRED;
 
   return (
     <motion.div
@@ -307,41 +326,71 @@ function StepTopic({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -24 }}
       transition={{ duration: 0.35 }}
-      className="w-full max-w-md space-y-8"
+      className="w-full max-w-md space-y-6"
     >
       <div className="space-y-2">
         <p className="text-sm font-medium text-primary uppercase tracking-widest">Step 3 of 3</p>
-        <h1 className="text-3xl font-extrabold text-gray-900">What's your favourite topic?</h1>
-        <p className="text-gray-500 text-lg">We'll show these stories first every day.</p>
+        <h1 className="text-3xl font-extrabold text-gray-900">Pick your top 3 interests</h1>
+        <p className="text-gray-500 text-base">We'll show these stories first every day.</p>
+      </div>
+
+      <div className="flex items-center gap-2">
+        {Array.from({ length: REQUIRED }).map((_, i) => (
+          <div
+            key={i}
+            className={`h-2 flex-1 rounded-full transition-all duration-300 ${
+              i < selected.length ? "bg-primary" : "bg-gray-200"
+            }`}
+          />
+        ))}
+        <span className="text-sm font-bold text-gray-500 shrink-0 ml-1">
+          {selected.length}/{REQUIRED}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {TOPICS.map((topic) => (
-          <button
-            key={topic.value}
-            onClick={() => {
-              setSelected(topic.value);
-              onSelect(topic.value);
-            }}
-            disabled={saving}
-            className={`rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
-              selected === topic.value
-                ? "border-primary bg-primary/5 shadow-sm"
-                : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
-            } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
-          >
-            <div className="text-2xl mb-1">{topic.icon}</div>
-            <p className="font-semibold text-sm text-gray-900 leading-tight">{topic.label}</p>
-          </button>
-        ))}
+        {TOPICS.map((topic) => {
+          const isSelected = selected.includes(topic.value);
+          const isDisabled = !isSelected && selected.length >= REQUIRED;
+          return (
+            <button
+              key={topic.value}
+              onClick={() => toggle(topic.value)}
+              disabled={saving || isDisabled}
+              className={`rounded-2xl border-2 p-4 text-left transition-all duration-200 ${
+                isSelected
+                  ? "border-primary bg-primary/5 shadow-sm scale-[1.02]"
+                  : isDisabled
+                  ? "border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed"
+                  : "border-gray-200 hover:border-primary/50 hover:bg-gray-50"
+              } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+            >
+              <div className="text-2xl mb-1">{topic.icon}</div>
+              <p className="font-semibold text-sm text-gray-900 leading-tight">{topic.label}</p>
+              {isSelected && (
+                <div className="mt-1.5 w-4 h-4 rounded-full bg-primary flex items-center justify-center">
+                  <svg viewBox="0 0 10 8" fill="none" className="w-2.5 h-2.5">
+                    <path d="M1 4l2.5 2.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {saving && (
-        <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          Setting up your feed…
-        </div>
-      )}
+      <button
+        onClick={handleConfirm}
+        disabled={!canConfirm || saving}
+        className="w-full py-4 rounded-2xl bg-primary text-white font-bold text-base disabled:opacity-40 transition-all hover:bg-primary/90 active:scale-95"
+      >
+        {saving ? (
+          <span className="flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Setting up your feed…
+          </span>
+        ) : canConfirm ? "Start Reading →" : `Pick ${REQUIRED - selected.length} more`}
+      </button>
 
       <button onClick={onBack} disabled={saving} className="text-sm text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-40">
         ← Back

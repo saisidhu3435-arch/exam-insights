@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { newsArticlesTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
-import { refreshNews } from "./services/news-fetcher";
+import { refreshNews, deleteOldArticles } from "./services/news-fetcher";
 import cron from "node-cron";
 
 const rawPort = process.env["PORT"];
@@ -21,7 +21,11 @@ if (Number.isNaN(port) || port <= 0) {
 async function runNewsRefresh(reason: string) {
   try {
     logger.info({ reason }, "Running scheduled news refresh...");
-    const result = await refreshNews(6);
+    // First clean up articles older than 24 hours
+    const deleted = await deleteOldArticles();
+    if (deleted > 0) logger.info({ deleted }, "Removed expired articles (>24h)");
+    // Then fetch fresh news
+    const result = await refreshNews(8);
     logger.info(result, "News refresh complete");
   } catch (err) {
     logger.warn({ err }, "News refresh failed (non-fatal)");

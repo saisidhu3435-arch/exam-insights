@@ -13,9 +13,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Bookmark,
-  Share2,
   GraduationCap,
-  CheckCircle2,
   Lightbulb,
   Sparkles,
   Vote,
@@ -45,57 +43,98 @@ function extractKeyFacts(text: string): string[] {
     .slice(0, 5);
 }
 
-// Multiple images per category for variety — picked by (articleId % length)
-const CATEGORY_IMAGE_POOLS: Record<string, string[]> = {
-  Law: [
+// Keyword → curated Unsplash photo IDs (matched against headline words)
+const KEYWORD_IMAGES: Array<{ keywords: string[]; urls: string[] }> = [
+  { keywords: ["supreme court", "high court", "tribunal", "court"], urls: [
     "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1521587760476-6c12a4b040da?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["constitution", "fundamental rights", "article 370", "article 21"], urls: [
     "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&q=85&auto=format&fit=crop",
-  ],
-  Economy: [
-    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1607863680198-23d4b2565df0?w=1200&q=85&auto=format&fit=crop",
-  ],
-  Politics: [
+    "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["parliament", "lok sabha", "rajya sabha", "legislature", "bill passed"], urls: [
     "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["election", "vote", "voting", "poll results", "ballot"], urls: [
     "https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1575986767340-5d17ae767ab0?w=1200&q=85&auto=format&fit=crop",
-  ],
-  "International Relations": [
+  ]},
+  { keywords: ["rbi", "reserve bank", "interest rate", "repo rate", "monetary policy", "inflation", "rupee"], urls: [
+    "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["budget", "gdp", "economic", "trade", "import", "export", "tariff"], urls: [
+    "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1607863680198-23d4b2565df0?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["pakistan", "indus", "water treaty", "ceasefire", "border pakistan"], urls: [
+    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["china", "chinese", "beijing", "taiwan", "south china sea"], urls: [
     "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
-  ],
-  Environment: [
-    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=1200&q=85&auto=format&fit=crop",
-  ],
-  "Science & Technology": [
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=1200&q=85&auto=format&fit=crop",
-  ],
-  "National Security": [
+  ]},
+  { keywords: ["usa", "america", "washington", "trump", "biden", "white house"], urls: [
+    "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1529107386315-e1a2ed48a620?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["russia", "ukraine", "war", "conflict", "missile", "nato"], urls: [
+    "https://images.unsplash.com/photo-1580502304784-8985b7eb7260?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1547782793-e1f88a4bc2c4?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["army", "military", "soldier", "defence", "border", "surgical strike", "security forces"], urls: [
     "https://images.unsplash.com/photo-1579762593175-20226054cad0?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1521791055366-0d553872952f?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["nuclear", "missile", "weapons", "agni", "brahmos"], urls: [
     "https://images.unsplash.com/photo-1473321679-1eae777cc2f7?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=1200&q=85&auto=format&fit=crop",
-  ],
-  Social: [
+  ]},
+  { keywords: ["isro", "space", "rocket", "satellite", "chandrayaan", "gaganyaan", "mars"], urls: [
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["ai ", "artificial intelligence", "chatgpt", "machine learning", "robot"], urls: [
+    "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["cyber", "hack", "data breach", "digital", "internet", "tech"], urls: [
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["climate", "global warming", "carbon", "emission", "net zero", "renewable"], urls: [
+    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1523712999610-f77fbcfc3843?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["forest", "wildlife", "tiger", "deforestation", "biodiversity"], urls: [
+    "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1470058869958-2a77ade41c02?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["flood", "drought", "earthquake", "cyclone", "disaster", "rainfall"], urls: [
+    "https://images.unsplash.com/photo-1547036967-23d11aacaee0?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["hospital", "health", "vaccine", "disease", "medicine", "doctor", "drug"], urls: [
+    "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["education", "school", "university", "student", "exam", "jee", "neet"], urls: [
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&q=85&auto=format&fit=crop",
+  ]},
+  { keywords: ["woman", "gender", "rape", "violence against", "women rights", "maternity"], urls: [
     "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1517022812141-23620dbbaca6?w=1200&q=85&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1491438590914-bc09fcaaf77a?w=1200&q=85&auto=format&fit=crop",
     "https://images.unsplash.com/photo-1526976668912-1a811878dd37?w=1200&q=85&auto=format&fit=crop",
-  ],
-};
+  ]},
+  { keywords: ["united nations", "un ", "imf", "world bank", "g20", "g7", "global"], urls: [
+    "https://images.unsplash.com/photo-1508193638397-1c4234db14d8?w=1200&q=85&auto=format&fit=crop",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&q=85&auto=format&fit=crop",
+  ]},
+];
 
 const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=1200&q=85&auto=format&fit=crop",
@@ -103,13 +142,13 @@ const FALLBACK_IMAGES = [
   "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=1200&q=85&auto=format&fit=crop",
 ];
 
-function getArticleImage(articleId: number, category: string, storedUrl?: string | null): string {
-  // If a real RSS image was fetched (not a category fallback), keep using it
-  const categoryPool = CATEGORY_IMAGE_POOLS[category];
-  if (categoryPool) {
-    return categoryPool[articleId % categoryPool.length];
+function getArticleImage(articleId: number, _category: string, headline: string, _storedUrl?: string | null): string {
+  const h = (headline ?? "").toLowerCase();
+  for (const entry of KEYWORD_IMAGES) {
+    if (entry.keywords.some((kw) => h.includes(kw))) {
+      return entry.urls[articleId % entry.urls.length];
+    }
   }
-  if (storedUrl) return storedUrl;
   return FALLBACK_IMAGES[articleId % FALLBACK_IMAGES.length];
 }
 
@@ -120,25 +159,40 @@ function isMainArticle(article: { isFeatured: boolean; readingTime: string; cate
   return article.isFeatured || article.readingTime === "10min" || MAIN_CATEGORIES.includes(article.category);
 }
 
-// Scenario-based poll prompts per category
-const SCENARIO_POLLS: Record<string, { prompt: string; options: string[] }> = {
-  Law:                   { prompt: "If you were the judge, what would your decision be?", options: ["Rule in favour of the petitioner", "Dismiss the petition", "Refer it to a larger bench"] },
-  Politics:              { prompt: "If you were the lawmaker, what would you do?", options: ["Pass the bill as proposed", "Amend before passing", "Reject and start fresh"] },
-  Economy:               { prompt: "If you were the Finance Minister, what's your call?", options: ["Raise interest rates", "Cut taxes to boost growth", "Stay the course, no change"] },
-  Environment:           { prompt: "As a policymaker, what's your priority?", options: ["Strict penalties for violators", "Incentivise green alternatives", "International cooperation first"] },
-  "International Relations": { prompt: "If you were the Foreign Minister, what's the move?", options: ["Diplomatic dialogue", "Impose sanctions", "Strengthen bilateral ties"] },
-  "National Security":   { prompt: "As the security chief, what would you order?", options: ["Increase border patrols", "Engage in intelligence sharing", "Strengthen domestic surveillance"] },
-  "Science & Technology":{ prompt: "As an ethics board member, how do you vote?", options: ["Approve — innovation matters", "Approve with strict oversight", "Reject — too risky"] },
-  Social:                { prompt: "If you could set the policy, what would you choose?", options: ["More government-led welfare", "Empower community initiatives", "Public-private partnership"] },
-  default:               { prompt: "What's your take on this issue?", options: ["Strong action needed now", "Wait and watch carefully", "More data is required"] },
-};
+// Generate an article-specific poll from the headline and category
+function buildPoll(headline: string, category: string): { prompt: string; options: string[] } {
+  const h = headline.length > 65 ? headline.slice(0, 62) + "…" : headline;
 
-function getPoll(category: string) {
-  return SCENARIO_POLLS[category] ?? SCENARIO_POLLS.default;
+  const prompts: Record<string, (hl: string) => string> = {
+    Law: (hl) => `You're on the bench for: "${hl}" — how do you rule?`,
+    Politics: (hl) => `On the decision about "${hl}" — what's the right move?`,
+    Economy: (hl) => `Facing "${hl}" — what's your call as Finance Minister?`,
+    "International Relations": (hl) => `On this — "${hl}" — what's India's best response?`,
+    "National Security": (hl) => `Responding to "${hl}" — what do you prioritise?`,
+    Environment: (hl) => `On the issue of "${hl}" — what would you do first?`,
+    "Science & Technology": (hl) => `Regarding "${hl}" — what's your verdict?`,
+    Social: (hl) => `On "${hl}" — what policy would you back?`,
+  };
+
+  const options: Record<string, string[]> = {
+    Law: ["Rule in favour of the petitioner", "Dismiss on procedural grounds", "Refer to a larger constitutional bench"],
+    Politics: ["Push it through with immediate effect", "Send it back for wider consultation", "Reject it and start fresh"],
+    Economy: ["Raise rates to control inflation", "Cut taxes to stimulate growth", "Hold steady — no change"],
+    "International Relations": ["Pursue dialogue and de-escalate", "Take firm unilateral action", "Work through multilateral forums"],
+    "National Security": ["Escalate response immediately", "Strengthen intelligence networks", "Boost domestic security infrastructure"],
+    Environment: ["Impose strict penalties on violators", "Offer incentives for green behaviour", "Seek international climate funding"],
+    "Science & Technology": ["Approve with strict oversight", "Pause and commission independent review", "Reject — the risks outweigh benefits"],
+    Social: ["Direct government-led welfare", "Community-driven grassroots solutions", "Public-private co-funding model"],
+  };
+
+  const promptFn = prompts[category] ?? ((hl: string) => `Your take on "${hl}"?`);
+  const opts = options[category] ?? ["Take strong action now", "Wait for more information", "Seek expert advice"];
+
+  return { prompt: promptFn(h), options: opts };
 }
 
-function QuickPoll({ articleId, category }: { articleId: number; category: string }) {
-  const poll = getPoll(category);
+function QuickPoll({ articleId, headline, category }: { articleId: number; headline: string; category: string }) {
+  const poll = buildPoll(headline, category);
   const storageKey = `ma_poll_${articleId}`;
 
   const [votes, setVotes] = useState<number[]>(() => {
@@ -246,7 +300,6 @@ export function ArticlePage() {
   const { toggle, isBookmarked } = useBookmarks();
   const { markRead } = useStreak();
   const { markRead: markArticleRead } = useReadArticles();
-  const [shared, setShared] = useState(false);
 
   const { data: preferences } = useGetPreferences(
     { sessionId },
@@ -278,25 +331,12 @@ export function ArticlePage() {
     );
   };
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    const title = article?.headline ?? "Minute Ahead";
-    const text = article?.summary ?? "";
-    if (navigator.share) {
-      try { await navigator.share({ title, text, url }); } catch {}
-    } else {
-      await navigator.clipboard.writeText(url);
-      setShared(true);
-      setTimeout(() => setShared(false), 2500);
-    }
-  };
-
   const keyFacts = useMemo(() => (article ? extractKeyFacts(article.fullExplanation) : []), [article]);
   const bookmarked = isBookmarked(id);
   const liked = reactions?.userReaction === "like";
   const disliked = reactions?.userReaction === "dislike";
 
-  const heroImage = article ? getArticleImage(article.id, article.category, article.imageUrl) : "";
+  const heroImage = article ? getArticleImage(article.id, article.category, article.headline, article.imageUrl) : "";
   const showPoll = article ? isMainArticle(article) : false;
 
   if (isLoading) {
@@ -350,12 +390,6 @@ export function ArticlePage() {
               title={bookmarked ? "Remove bookmark" : "Bookmark"}
             >
               <Bookmark className={`w-5 h-5 ${bookmarked ? "fill-white" : ""}`} />
-            </button>
-            <button
-              onClick={handleShare}
-              className="p-2 rounded-full text-white/70 hover:text-white hover:bg-white/15 transition-colors"
-            >
-              {shared ? <CheckCircle2 className="w-5 h-5 text-green-300" /> : <Share2 className="w-5 h-5" />}
             </button>
           </div>
         </div>
@@ -415,7 +449,7 @@ export function ArticlePage() {
                 <p className="text-muted-foreground font-medium text-sm leading-relaxed">{article.whyItMatters}</p>
               </div>
             )}
-            {showPoll && <QuickPoll articleId={id} category={article.category} />}
+            {showPoll && <QuickPoll articleId={id} headline={article.headline} category={article.category} />}
           </>
         )}
 
@@ -471,7 +505,7 @@ export function ArticlePage() {
               </div>
             )}
 
-            {showPoll && <QuickPoll articleId={id} category={article.category} />}
+            {showPoll && <QuickPoll articleId={id} headline={article.headline} category={article.category} />}
             <AskAI articleId={id} />
           </>
         )}
@@ -490,7 +524,7 @@ export function ArticlePage() {
                 <p className="text-base font-medium leading-relaxed text-foreground/90">"{article.whyItMatters}"</p>
               </div>
             )}
-            {showPoll && <QuickPoll articleId={id} category={article.category} />}
+            {showPoll && <QuickPoll articleId={id} headline={article.headline} category={article.category} />}
             <AskAI articleId={id} />
           </>
         )}
@@ -519,9 +553,6 @@ export function ArticlePage() {
               <span className="font-bold text-sm">{reactions?.dislikes ?? article.dislikes}</span>
             </button>
           </div>
-          {shared && (
-            <p className="text-center text-green-600 font-medium text-sm mt-6 animate-in fade-in">Link copied!</p>
-          )}
         </div>
       </div>
     </article>

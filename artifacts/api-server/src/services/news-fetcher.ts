@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import { db } from "@workspace/db";
 import { newsArticlesTable } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, lt } from "drizzle-orm";
 import { anthropic } from "@workspace/integrations-anthropic-ai";
 
 const parser = new XMLParser({
@@ -77,18 +77,34 @@ async function fetchRssFeed(feed: { url: string; sourceName: string; sourceUrl: 
     const parsed = parser.parse(text);
     const items = parsed?.rss?.channel?.item ?? [];
     const arr = Array.isArray(items) ? items : [items];
-    return arr.map((item: Record<string, unknown>) => ({
-      title: String(item.title ?? "").replace(/<[^>]*>/g, "").trim(),
-      link: String(item.link ?? ""),
-      pubDate: String(item.pubDate ?? new Date().toISOString()),
-      description: String(item.description ?? "").replace(/<[^>]*>/g, "").trim(),
-      imageUrl: extractImageFromItem(item),
-      sourceName: feed.sourceName,
-      sourceUrl: feed.sourceUrl,
-    }));
+
+    // Only keep items published within the last 24 hours
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    return arr
+      .map((item: Record<string, unknown>) => ({
+        title: String(item.title ?? "").replace(/<[^>]*>/g, "").trim(),
+        link: String(item.link ?? ""),
+        pubDate: String(item.pubDate ?? new Date().toISOString()),
+        description: String(item.description ?? "").replace(/<[^>]*>/g, "").trim(),
+        imageUrl: extractImageFromItem(item),
+        sourceName: feed.sourceName,
+        sourceUrl: feed.sourceUrl,
+      }))
+      .filter((item) => {
+        const pub = new Date(item.pubDate);
+        return !isNaN(pub.getTime()) && pub >= cutoff;
+      });
   } catch {
     return [];
   }
+}
+
+// Remove articles older than 24 hours from the DB
+export async function deleteOldArticles(): Promise<number> {
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const result = await db.delete(newsArticlesTable).where(lt(newsArticlesTable.publishedAt, cutoff));
+  return (result as { rowCount?: number }).rowCount ?? 0;
 }
 
 const CATEGORIES = [

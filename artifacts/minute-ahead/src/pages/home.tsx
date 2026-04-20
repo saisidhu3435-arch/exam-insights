@@ -69,7 +69,7 @@ function useLocalTime() {
   });
 
   // Friendly short timezone label
-  const tzLabel = tz === "Asia/Kolkata" ? "IST"
+  const tzLabel = (tz === "Asia/Kolkata" || tz === "Asia/Calcutta") ? "IST"
     : tz.includes("America/New_York") ? "EST"
     : tz.includes("America/Chicago") ? "CST"
     : tz.includes("America/Denver") ? "MST"

@@ -17,16 +17,12 @@ function AnimatedFireStreak({ count }: { count: number }) {
 
 function Logo() {
   return (
-    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <circle cx="14" cy="14" r="14" fill="hsl(var(--primary))" />
-      {/* Clock face */}
-      <circle cx="14" cy="14" r="9" stroke="white" strokeWidth="1.5" fill="none" />
-      {/* Hour hand pointing to 12 */}
-      <line x1="14" y1="14" x2="14" y2="7.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-      {/* Minute hand pointing to 1 (slightly past) */}
-      <line x1="14" y1="14" x2="18" y2="11" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
-      {/* Center dot */}
-      <circle cx="14" cy="14" r="1.2" fill="white" />
+    <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      {/* Bold square background */}
+      <rect width="30" height="30" rx="6" fill="hsl(var(--primary))" />
+      {/* Forward arrow representing "Ahead" */}
+      <line x1="7" y1="15" x2="21" y2="15" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <polyline points="15,9 22,15 15,21" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
