@@ -7,14 +7,27 @@ function AnimatedFireStreak({ count }: { count: number }) {
   if (count === 0) return null;
   return (
     <div className="flex items-center gap-1 bg-orange-100 border border-orange-200 rounded-full px-2.5 py-1 select-none">
-      <span
-        className="text-base leading-none"
-        style={{ animation: "fireWiggle 0.8s ease-in-out infinite alternate" }}
-      >
+      <span className="text-base leading-none" style={{ animation: "fireWiggle 0.8s ease-in-out infinite alternate" }}>
         🔥
       </span>
       <span className="text-xs font-extrabold text-orange-600">{count}</span>
     </div>
+  );
+}
+
+function Logo() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <circle cx="14" cy="14" r="14" fill="hsl(var(--primary))" />
+      {/* Clock face */}
+      <circle cx="14" cy="14" r="9" stroke="white" strokeWidth="1.5" fill="none" />
+      {/* Hour hand pointing to 12 */}
+      <line x1="14" y1="14" x2="14" y2="7.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+      {/* Minute hand pointing to 1 (slightly past) */}
+      <line x1="14" y1="14" x2="18" y2="11" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+      {/* Center dot */}
+      <circle cx="14" cy="14" r="1.2" fill="white" />
+    </svg>
   );
 }
 
@@ -35,17 +48,16 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       <header className="sticky top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
-          {/* Logo + brand name */}
+          {/* Logo + brand */}
           <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity mr-auto">
+            <Logo />
             <span className="font-black text-lg leading-none tracking-tight text-foreground">
               Minute<span className="text-primary"> Ahead</span>
             </span>
           </Link>
 
-          {/* Streak fire (shown when user has a streak) */}
           <AnimatedFireStreak count={streak} />
 
-          {/* Nav */}
           <nav className="flex items-center gap-0.5">
             <Link
               href="/"
@@ -77,9 +89,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 />
               ) : (
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                  location === "/profile"
-                    ? "bg-primary text-white"
-                    : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                  location === "/profile" ? "bg-primary text-white" : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
                 }`}>
                   <User className="w-4 h-4" />
                 </div>

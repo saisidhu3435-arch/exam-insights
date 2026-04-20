@@ -23,9 +23,18 @@ import {
 import { useSessionId } from "@/hooks/use-session";
 import { useBookmarks } from "@/hooks/use-bookmarks";
 import { useStreak } from "@/hooks/use-streak";
+import { useReadArticles } from "@/hooks/use-read-articles";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+
 import { AskAI } from "@/components/ask-ai";
+
+const USER_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+function formatLocalDate(iso: string) {
+  return new Date(iso).toLocaleDateString("en-IN", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: USER_TZ,
+  });
+}
 
 function extractKeyFacts(text: string): string[] {
   return text
@@ -236,6 +245,7 @@ export function ArticlePage() {
   const queryClient = useQueryClient();
   const { toggle, isBookmarked } = useBookmarks();
   const { markRead } = useStreak();
+  const { markRead: markArticleRead } = useReadArticles();
   const [shared, setShared] = useState(false);
 
   const { data: preferences } = useGetPreferences(
@@ -253,8 +263,11 @@ export function ArticlePage() {
   const createReaction = useCreateReaction();
 
   useEffect(() => {
-    if (article) markRead();
-  }, [article, markRead]);
+    if (article) {
+      markRead();
+      markArticleRead(article.id);
+    }
+  }, [article, markRead, markArticleRead]);
 
   const handleReaction = (type: "like" | "dislike") => {
     const current = reactions?.userReaction;
@@ -373,9 +386,7 @@ export function ArticlePage() {
         </h1>
 
         <p className="text-white/60 text-xs font-medium mt-3 relative">
-          {new Date(article.publishedAt).toLocaleDateString("en-IN", {
-            weekday: "long", year: "numeric", month: "long", day: "numeric",
-          })}
+          {formatLocalDate(article.publishedAt)}
         </p>
       </div>
 

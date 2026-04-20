@@ -270,6 +270,12 @@ components:
         imageUrl:
           type: string
           description: Hero image URL for the article
+        sourceName:
+          type: string
+          description: Display name of the news source (e.g. "The Hindu")
+        sourceUrl:
+          type: string
+          description: URL of the original news source
       required:
         - id
         - headline

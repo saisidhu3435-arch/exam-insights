@@ -21,6 +21,8 @@ export const newsArticlesTable = pgTable("news_articles", {
   whyItMatters: text("why_it_matters"),
   examRelevance: text("exam_relevance"),
   imageUrl: text("image_url"),
+  sourceName: text("source_name"),
+  sourceUrl: text("source_url"),
 });
 
 export const reactionsTable = pgTable("reactions", {

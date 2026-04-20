@@ -38,6 +38,10 @@ export interface NewsArticle {
   examRelevance?: string;
   /** Hero image URL for the article */
   imageUrl?: string;
+  /** Display name of the news source (e.g. "The Hindu") */
+  sourceName?: string;
+  /** URL of the original news source */
+  sourceUrl?: string;
 }
 
 export interface Category {

@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import { newsArticlesTable } from "@workspace/db";
 import { desc } from "drizzle-orm";
 import { refreshNews } from "./services/news-fetcher";
+import cron from "node-cron";
 
 const rawPort = process.env["PORT"];
 
@@ -17,6 +18,16 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
+async function runNewsRefresh(reason: string) {
+  try {
+    logger.info({ reason }, "Running scheduled news refresh...");
+    const result = await refreshNews(6);
+    logger.info(result, "News refresh complete");
+  } catch (err) {
+    logger.warn({ err }, "News refresh failed (non-fatal)");
+  }
+}
+
 app.listen(port, async (err) => {
   if (err) {
     logger.error({ err }, "Error listening on port");
@@ -25,7 +36,7 @@ app.listen(port, async (err) => {
 
   logger.info({ port }, "Server listening");
 
-  // Auto-refresh news in background on startup
+  // On startup: refresh if stale (older than 2h)
   try {
     const recent = await db
       .select({ publishedAt: newsArticlesTable.publishedAt })
@@ -34,17 +45,22 @@ app.listen(port, async (err) => {
       .limit(1);
 
     const latestDate = recent[0]?.publishedAt;
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-    // Refresh if no articles or last article is older than 24h
-    if (!latestDate || latestDate < oneDayAgo) {
-      logger.info("Auto-refreshing news from verified sources...");
-      const result = await refreshNews(6);
-      logger.info(result, "News auto-refresh complete");
+    if (!latestDate || latestDate < twoHoursAgo) {
+      await runNewsRefresh("startup-stale");
     } else {
-      logger.info("News is up to date, skipping auto-refresh");
+      logger.info("News is fresh, skipping startup refresh");
     }
   } catch (err) {
-    logger.warn({ err }, "News auto-refresh failed (non-fatal)");
+    logger.warn({ err }, "Startup news check failed (non-fatal)");
   }
+
+  // Schedule automatic refresh every 2 hours, all day
+  // Runs at minute 0 of hours 0,2,4,6,8,10,12,14,16,18,20,22 every day
+  cron.schedule("0 */2 * * *", () => {
+    runNewsRefresh("cron-2h");
+  });
+
+  logger.info("News auto-refresh cron scheduled: every 2 hours");
 });

@@ -10,16 +10,16 @@ const parser = new XMLParser({
   isArray: (tagName) => ["item"].includes(tagName),
 });
 
-// Trusted Indian news sources
-const RSS_FEEDS = [
-  "https://www.thehindu.com/news/national/feeder/default.rss",
-  "https://www.thehindu.com/news/international/feeder/default.rss",
-  "https://feeds.feedburner.com/ndtvnews-india-news",
-  "https://indianexpress.com/feed/",
-  "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",
-  "https://news.google.com/rss/search?q=india+supreme+court+constitution+law&hl=en-IN&gl=IN&ceid=IN:en",
-  "https://news.google.com/rss/search?q=india+parliament+government+policy+budget&hl=en-IN&gl=IN&ceid=IN:en",
-  "https://news.google.com/rss/search?q=india+economy+RBI+international+relations&hl=en-IN&gl=IN&ceid=IN:en",
+// Trusted Indian news sources with display names
+const RSS_FEEDS: Array<{ url: string; sourceName: string; sourceUrl: string }> = [
+  { url: "https://www.thehindu.com/news/national/feeder/default.rss",      sourceName: "The Hindu",         sourceUrl: "https://www.thehindu.com" },
+  { url: "https://www.thehindu.com/news/international/feeder/default.rss", sourceName: "The Hindu",         sourceUrl: "https://www.thehindu.com" },
+  { url: "https://indianexpress.com/feed/",                                 sourceName: "Indian Express",    sourceUrl: "https://indianexpress.com" },
+  { url: "https://timesofindia.indiatimes.com/rssfeedstopstories.cms",     sourceName: "Times of India",    sourceUrl: "https://timesofindia.indiatimes.com" },
+  { url: "https://feeds.feedburner.com/ndtvnews-india-news",               sourceName: "NDTV",              sourceUrl: "https://www.ndtv.com" },
+  { url: "https://news.google.com/rss/search?q=india+supreme+court+constitution+law&hl=en-IN&gl=IN&ceid=IN:en",           sourceName: "Google News India", sourceUrl: "https://news.google.com" },
+  { url: "https://news.google.com/rss/search?q=india+parliament+government+policy+budget&hl=en-IN&gl=IN&ceid=IN:en",     sourceName: "Google News India", sourceUrl: "https://news.google.com" },
+  { url: "https://news.google.com/rss/search?q=india+economy+RBI+international+relations&hl=en-IN&gl=IN&ceid=IN:en",    sourceName: "Google News India", sourceUrl: "https://news.google.com" },
 ];
 
 // Category → reliable Unsplash photo ID for hero images
@@ -43,8 +43,9 @@ interface RssItem {
   link: string;
   pubDate: string;
   description?: string;
-  source?: string;
   imageUrl?: string;
+  sourceName: string;
+  sourceUrl: string;
 }
 
 function extractImageFromItem(item: Record<string, unknown>): string | undefined {
@@ -65,9 +66,9 @@ function extractImageFromItem(item: Record<string, unknown>): string | undefined
   return undefined;
 }
 
-async function fetchRssFeed(url: string): Promise<RssItem[]> {
+async function fetchRssFeed(feed: { url: string; sourceName: string; sourceUrl: string }): Promise<RssItem[]> {
   try {
-    const res = await fetch(url, {
+    const res = await fetch(feed.url, {
       headers: { "User-Agent": "Minute Ahead News / 1.0 (student news aggregator)" },
       signal: AbortSignal.timeout(10000),
     });
@@ -81,10 +82,9 @@ async function fetchRssFeed(url: string): Promise<RssItem[]> {
       link: String(item.link ?? ""),
       pubDate: String(item.pubDate ?? new Date().toISOString()),
       description: String(item.description ?? "").replace(/<[^>]*>/g, "").trim(),
-      source: typeof item.source === "object"
-        ? String((item.source as Record<string, unknown>)["#text"] ?? "")
-        : String(item.source ?? ""),
       imageUrl: extractImageFromItem(item),
+      sourceName: feed.sourceName,
+      sourceUrl: feed.sourceUrl,
     }));
   } catch {
     return [];
@@ -123,6 +123,8 @@ async function enrichWithAI(item: RssItem): Promise<{
   category: string;
   readingTime: "2min" | "5min" | "10min";
   imageUrl: string;
+  sourceName: string;
+  sourceUrl: string;
 } | null> {
   try {
     const category = determineCategory(item.title, item.description ?? "");
@@ -194,6 +196,8 @@ IMPORTANT: Return ONLY valid JSON. No markdown. No explanation outside the JSON.
       category: validCategory,
       readingTime: validReadingTime,
       imageUrl,
+      sourceName: item.sourceName,
+      sourceUrl: item.sourceUrl,
     };
   } catch {
     return null;
@@ -215,10 +219,10 @@ export async function refreshNews(maxNew = 8): Promise<{ added: number; skipped:
 
   const existingHeadlines = await getExistingHeadlines();
 
-  for (const feedUrl of RSS_FEEDS) {
+  for (const feed of RSS_FEEDS) {
     if (added >= maxNew) break;
 
-    const items = await fetchRssFeed(feedUrl);
+    const items = await fetchRssFeed(feed);
 
     for (const item of items.slice(0, 5)) {
       if (added >= maxNew) break;
@@ -243,6 +247,8 @@ export async function refreshNews(maxNew = 8): Promise<{ added: number; skipped:
           category: enriched.category,
           readingTime: enriched.readingTime,
           imageUrl: enriched.imageUrl,
+          sourceName: enriched.sourceName,
+          sourceUrl: enriched.sourceUrl,
           publishedAt: new Date(item.pubDate),
           isFeatured: false,
           likes: 0,
