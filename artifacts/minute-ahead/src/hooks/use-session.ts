@@ -1,23 +1,32 @@
 import { useState, useEffect } from "react";
+import { useUser } from "@clerk/react";
 
-/** Get or create the session ID synchronously (safe to call outside hooks) */
-export function getOrCreateSessionId(): string {
+const ANON_KEY = "ma_session_id";
+
+function getOrCreateAnonId(): string {
   if (typeof window === "undefined") return "ssr";
-  let id = localStorage.getItem("ma_session_id");
+  let id = localStorage.getItem(ANON_KEY);
   if (!id) {
     id = "sess_" + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem("ma_session_id", id);
+    localStorage.setItem(ANON_KEY, id);
   }
   return id;
 }
 
-/** React hook — returns the session ID, empty string on SSR first render */
+export function getOrCreateSessionId(): string {
+  return getOrCreateAnonId();
+}
+
 export function useSessionId() {
-  const [sessionId, setSessionId] = useState<string>(() => getOrCreateSessionId());
+  const { user, isLoaded } = useUser();
+  const [anonId, setAnonId] = useState<string>(() => getOrCreateAnonId());
 
   useEffect(() => {
-    setSessionId(getOrCreateSessionId());
+    setAnonId(getOrCreateAnonId());
   }, []);
 
-  return sessionId;
+  if (isLoaded && user?.id) {
+    return `user_${user.id}`;
+  }
+  return anonId;
 }

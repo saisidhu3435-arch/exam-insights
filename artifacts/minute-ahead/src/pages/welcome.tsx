@@ -314,7 +314,7 @@ function StepTopic({
 
   function handleConfirm() {
     if (selected.length === REQUIRED && !saving) {
-      onSelect(selected[0]);
+      onSelect(selected.join(","));
     }
   }
 
