@@ -1,4 +1,4 @@
-export default async function handler(req, res) {
+export default async function handler(req: any, res: any) {
   try {
     const response = await fetch(
       "https://newsapi.org/v2/top-headlines?country=in&apiKey=366aebe07bb74ff0943ebc3cc5638d4a"
