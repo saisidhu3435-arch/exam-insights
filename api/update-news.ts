@@ -1,5 +1,3 @@
-// api/update-news.ts
-
 let cachedNews: any[] = []
 
 export default async function handler(req, res) {
